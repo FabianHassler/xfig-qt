@@ -1,0 +1,351 @@
+/*
+ * mainwindow.cpp - the xfig main window.
+ *
+ * xfig builds its main window from Xaw widgets.  The panels get Qt peers
+ * (xaw.cpp); this window arranges them as in xfig: mode panel on the left,
+ * rulers and canvas in the middle, depth manager on the right, indicator
+ * panel below.  The command panel's menus become the native menu bar.
+ */
+#include "mainwindow.h"
+#include "bridge.h"
+
+MainWindow *MainWindow::s_instance = nullptr;
+
+MainWindow::MainWindow()
+{
+	s_instance = this;
+	setWindowTitle("Xfig");
+	setUnifiedTitleAndToolBarOnMac(true);
+
+	QWidget *central = new QWidget;
+	central->setAutoFillBackground(true);
+	QVBoxLayout *outer = new QVBoxLayout(central);
+	outer->setContentsMargins(0, 0, 0, 0);
+	outer->setSpacing(0);
+	/* message line and mouse buttons on top, as in X11 xfig */
+	m_top = new QHBoxLayout;
+	m_top->setContentsMargins(4, 2, 2, 2);
+	m_top->setSpacing(4);
+	outer->addLayout(m_top);
+	m_message = new QLabel;
+	m_message->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	m_message->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	m_top->addWidget(m_message, 1);
+
+	QHBoxLayout *middle = new QHBoxLayout;
+	middle->setSpacing(0);
+	outer->addLayout(middle, 1);
+
+	m_left = new QVBoxLayout;
+	m_left->setContentsMargins(2, 2, 2, 2);
+	m_left->setSpacing(2);
+	middle->addLayout(m_left);
+
+	m_grid = new QGridLayout;
+	m_grid->setContentsMargins(0, 0, 0, 0);
+	m_grid->setSpacing(0);
+	m_grid->setRowStretch(1, 1);
+	m_grid->setColumnStretch(1, 1);
+	middle->addLayout(m_grid, 1);
+
+	m_right = new QVBoxLayout;
+	m_right->setContentsMargins(2, 2, 2, 2);
+	m_right->setSpacing(2);
+	middle->addLayout(m_right);
+
+	m_bottom = new QHBoxLayout;
+	m_bottom->setContentsMargins(0, 0, 0, 0);
+	m_bottom->setSpacing(0);
+	outer->addLayout(m_bottom);
+
+	setCentralWidget(central);
+
+	createMenus();
+}
+
+/* ------------------------------------------------------------------ menus */
+
+/* "Open...     (Meta-O)" -> "Open...", Ctrl+O (Command-O on macOS) */
+static QString
+menu_text(const QString &label, QKeySequence *key)
+{
+	QString t = label.trimmed();
+	static const QRegularExpression rx("\\((Shift-)?(Meta|Ctrl)-([A-Za-z])\\)");
+	QRegularExpressionMatch m = rx.match(t);
+	if (m.hasMatch() && key) {
+		Qt::Key k = Qt::Key(m.captured(3).toUpper().at(0).unicode());
+		Qt::KeyboardModifiers mods = Qt::ControlModifier;
+		if (!m.captured(1).isEmpty())
+			mods |= Qt::ShiftModifier;
+		/* xfig's own Ctrl- accelerators become Command-Option */
+		if (m.captured(2) == "Ctrl")
+			mods |= Qt::AltModifier;
+		*key = QKeySequence(QKeyCombination(mods, k));
+	}
+	static const QRegularExpression paren("\\s*\\([^)]*\\)");
+	t.remove(paren);
+	return t.trimmed();
+}
+
+void
+MainWindow::createMenus()
+{
+	for (int i = 0; i < xqb_num_menus(); ++i) {
+		QMenu *qm = menuBar()->addMenu(QString::fromLatin1(xqb_menu_title(i)));
+		m_menus << qm;
+		connect(qm, &QMenu::aboutToShow, this, [this, qm, i] { fillMenu(qm, i); });
+	}
+	/* the entries exist once xfig made its menus: fill in the shortcuts */
+	QTimer::singleShot(0, this, [this] {
+		for (int i = 0; i < m_menus.size(); ++i)
+			fillMenu(m_menus[i], i);
+	});
+}
+
+static bool
+bitmap_blank(Pixmap p)
+{
+	QImage *img = p ? xq_image(p) : nullptr;
+	if (!img)
+		return true;
+	for (int y = 0; y < img->height(); ++y)
+		for (int x = 0; x < img->width(); ++x)
+			if ((img->pixel(x, y) & 0xffffff) != 0)
+				return false;
+	return true;
+}
+
+void
+MainWindow::fillMenu(QMenu *qm, int index)
+{
+	Widget menu = xqb_menu_widget(index);
+	if (!menu)
+		return;
+	qm->clear();
+	for (int i = 0; i < xq_widget_num_children(menu); ++i) {
+		Widget e = xq_widget_child(menu, i);
+		if (!XtIsManaged(e))
+			continue;
+		if (!strcmp(xq_widget_class(e), "SmeLine")) {
+			qm->addSeparator();
+			continue;
+		}
+		QKeySequence key;
+		QString text = menu_text(QString::fromUtf8(xq_widget_label(e)), &key);
+		QAction *a = qm->addAction(text);
+		a->setShortcut(key);
+		a->setEnabled(XtIsSensitive(e));
+		Pixmap lb = Pixmap(xq_res_default(e, XtNleftBitmap, 0));
+		/* xfig marks the selected view options with a left bitmap */
+		if (text.startsWith("Show") || text.startsWith("Autorefresh")) {
+			a->setCheckable(true);
+			a->setChecked(!bitmap_blank(lb));
+		}
+		if (text == "Exit")
+			a->setMenuRole(QAction::QuitRole);
+		else if (text.startsWith("About"))
+			a->setMenuRole(QAction::AboutRole);
+		else if (text.startsWith("Global settings"))
+			a->setMenuRole(QAction::PreferencesRole);
+		else
+			a->setMenuRole(QAction::NoRole);
+		connect(a, &QAction::triggered, this, [e] {
+			xq_call_callbacks(e, XtNcallback, nullptr);
+		});
+	}
+}
+
+/* ----------------------------------------------------------------- panels */
+
+void
+MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
+{
+	(void)wclass;
+	XawPeer *p = XawPeer::of(w);
+	if (!p)
+		return;
+	QString n = QString::fromLatin1(name);
+	Widget parent = xq_widget_parent(w);
+	if (qEnvironmentVariableIsSet("XFIGQT_DEBUG"))
+		qDebug("created %s (%s) in %s, %dx%d", name, wclass,
+			parent ? xq_widget_name(parent) : "-",
+			xq_widget_width(w), xq_widget_height(w));
+	/* only the panels of the main form, not equally named dialog parts */
+	if (!parent || strcmp(xq_widget_name(parent), "form") != 0)
+		return;
+	static const QStringList adopt = {"canvas", "topruler", "sideruler",
+		"unitbox", "mode_panel", "snap_indicator_form", "layer_form",
+		"ind_panel", "upd_ctrl_form", "mouse_panel"};
+	if (adopt.contains(n))
+		p->setAdopted(true);
+	if (n == "canvas") {
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->createWindow();
+		p->setMinimumSize(100, 100);
+		p->setFocusPolicy(Qt::StrongFocus);
+		p->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		p->onResize = [](int wd, int ht) { xqb_canvas_resized(wd, ht); };
+		m_grid->addWidget(p, 1, 1);
+		p->show();
+		p->setFocus();
+	} else if (n == "topruler") {
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->createWindow();
+		p->setFixedHeight(p->sizeHint().height());
+		p->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+		p->onResize = [](int wd, int) { xqb_rulers_resized(wd, 0); };
+		m_grid->addWidget(p, 0, 1);
+		p->show();
+	} else if (n == "sideruler") {
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->createWindow();
+		p->setFixedWidth(p->sizeHint().width());
+		p->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Ignored);
+		p->onResize = [](int, int ht) { xqb_rulers_resized(0, ht); };
+		m_grid->addWidget(p, 1, 0);
+		p->show();
+	} else if (n == "unitbox") {
+		/* the corner between the rulers, showing the units */
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		QFont f = p->font();
+		f.setPixelSize(10);
+		p->setFont(f);
+		p->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+		m_grid->addWidget(p, 0, 0);
+		p->show();
+	} else if (n == "mode_panel") {
+		m_modePanel = p;
+		p->setParent(nullptr);
+		m_left->addWidget(p, 0, Qt::AlignTop | Qt::AlignHCenter);
+		m_left->addStretch(1);
+		p->show();
+	} else if (n == "snap_indicator_form") {
+		/* xfig makes it as tall as the canvas; it needs only two lines */
+		XtVaSetValues(w, "xqH", (XtArgVal)0, NULL);
+		p->setParent(nullptr);
+		m_right->addWidget(p, 0, Qt::AlignTop | Qt::AlignHCenter);
+		p->show();
+	} else if (n == "layer_form") {
+		/* the depth manager fills the rest of the column */
+		XtVaSetValues(w, "xqH", (XtArgVal)0, NULL);
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+		m_right->addWidget(p, 1);
+		p->show();
+	} else if (n == "ind_panel") {
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->setFixedHeight(p->sizeHint().height());
+		p->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+		if (XawViewport *vp = qobject_cast<XawViewport *>(p))
+			vp->setFitHeight(true);
+		m_bottom->addWidget(p, 1);
+		p->show();
+	} else if (n == "upd_ctrl_form") {
+		p->setParent(nullptr);
+		m_bottom->addWidget(p, 0, Qt::AlignTop);
+		p->show();
+	} else if (n == "mouse_panel") {
+		p->setParent(nullptr);
+		p->setHostManaged(true);
+		p->createWindow();
+		p->setFixedSize(p->sizeHint());
+		m_top->addWidget(p);
+		m_mouseWidget = w;
+		p->show();
+	} else if (n == "message") {
+		m_msgWidget = w;
+	}
+}
+
+void
+MainWindow::widgetSetValues(Widget w, ArgList args, Cardinal n)
+{
+	for (Cardinal i = 0; i < n; ++i) {
+		const char *name = args[i].name;
+		if (!name)
+			continue;
+		if (m_modePanel && w == m_modePanel->xt() && !strcmp(name, XtNwidth)) {
+			/* xfig sized it for the screen: fit it to the window again */
+			QTimer::singleShot(0, this, [this] { fitModePanel(); });
+		} else if (!strcmp(name, XtNheight) && args[i].value &&
+				!strcmp(xq_widget_name(w), "label") &&
+				!strcmp(xq_widget_name(xq_widget_parent(w)), "mode_panel")) {
+			/* xfig pads "Drawing" and "Editing" to fill the panel's
+			   height; the Qt layout puts space below the buttons */
+			XtVaSetValues(w, "xqH", (XtArgVal)0, NULL);
+		} else if (w == m_mouseWidget && (!strcmp(name, XtNheight) ||
+					!strcmp(name, XtNwidth))) {
+			/* xfig makes the mouse panel taller once it is set up */
+			if (XawPeer *p = XawPeer::of(w))
+				p->setFixedSize(p->sizeHint());
+		} else if (w == m_msgWidget && !strcmp(name, XtNstring)) {
+			m_message->setText(QString::fromUtf8((const char *)args[i].value));
+		} else if (!strcmp(name, XtNtitle) && args[i].value &&
+				!strcmp(xq_widget_name(w), "xfig")) {
+			setWindowTitle(QString::fromUtf8((const char *)args[i].value));
+		}
+	}
+}
+
+/*
+ * Use the fewest columns of mode buttons that fit the window's height.
+ * (xfig chooses them from the screen size at startup.)
+ */
+void
+MainWindow::fitModePanel()
+{
+	if (!m_modePanel)
+		return;
+	Widget mp = m_modePanel->xt();
+	int avail = m_grid->geometry().height();
+	if (!isVisible() || avail < 200)	/* not laid out yet */
+		return;
+	/* the column width: the normal buttons (the library one is wider) */
+	int bw = INT_MAX;
+	for (int i = 0; i < xq_widget_num_children(mp); ++i) {
+		Widget c = xq_widget_child(mp, i);
+		if (!strcmp(xq_widget_class(c), "Command"))
+			bw = qMin(bw, xq_widget_width(c) + 2 * xq_widget_border(c));
+	}
+	if (bw <= 0 || bw == INT_MAX)
+		return;
+	int hs = int(xq_res_default(mp, XtNhSpace, 4));
+	for (int cols = 2; cols <= 6; ++cols) {
+		int width = cols * (bw + hs) + hs;
+		XtVaSetValues(mp, "xqW", (XtArgVal)width, NULL);
+		/* the "Drawing" and "Editing" labels span the panel */
+		for (int i = 0; i < xq_widget_num_children(mp); ++i) {
+			Widget c = xq_widget_child(mp, i);
+			if (!strcmp(xq_widget_class(c), "Label"))
+				XtVaSetValues(c, "xqW", (XtArgVal)(width - 2 * hs), NULL);
+		}
+		m_modePanel->layoutChildren();
+		if (qEnvironmentVariableIsSet("XFIGQT_DEBUG"))
+			qDebug("mode panel: %d columns (button %d, hs %d), size %dx%d of %d", cols, bw, hs, xq_widget_width(mp),
+				xq_widget_height(mp), avail);
+		if (xq_widget_height(mp) <= avail)
+			break;
+	}
+}
+
+void
+MainWindow::resizeEvent(QResizeEvent *e)
+{
+	QMainWindow::resizeEvent(e);
+	/* after the layout has settled */
+	QTimer::singleShot(50, this, [this] { fitModePanel(); });
+}
+
+void
+MainWindow::closeEvent(QCloseEvent *e)
+{
+	/* xfig's quit asks to save, then exits */
+	e->ignore();
+	xqb_quit();
+}
