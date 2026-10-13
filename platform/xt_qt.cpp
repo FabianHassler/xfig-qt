@@ -13,6 +13,7 @@
 #include <QSocketNotifier>
 #include <QTimer>
 
+#include <execinfo.h>
 #include <unistd.h>
 
 #include "xq.h"
@@ -310,6 +311,12 @@ xq_default_visual(void)
 extern "C" void
 xq_exit(int status)
 {
+	if (qEnvironmentVariableIsSet("XFIGQT_DEBUG")) {
+		void *frames[32];
+		int n = backtrace(frames, 32);
+		fprintf(stderr, "xfig exits with status %d from:\n", status);
+		backtrace_symbols_fd(frames, n, 2);
+	}
 	fflush(nullptr);
 	_exit(status);
 }
