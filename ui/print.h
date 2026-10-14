@@ -15,7 +15,7 @@ bool	print_figure(QWidget *parent);
 /* print to the printer or PDF file the dialog chose in printer */
 bool	print_figure_with(QPrinter &printer, QWidget *parent);
 
-/* Ghostscript: gs, or gswin64c on Windows; empty if not found */
+/* Ghostscript (gs); empty if not found */
 QString	find_ghostscript();
 
 #endif

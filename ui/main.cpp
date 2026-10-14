@@ -12,7 +12,7 @@ void run_test_script(const QString &path);
 
 /* xfig's data directory (CompKeyDB, doc/, Libraries/): XFIGQT_DATADIR, in
    the macOS app bundle, ../share/xfig-qt from the program (installed on
-   Linux, Windows or by Homebrew), or data/ in the source tree */
+   Linux), or data/ in the source tree */
 static QString
 data_dir()
 {
@@ -24,7 +24,6 @@ data_dir()
 		qEnvironmentVariable("XFIGQT_DATADIR"),
 		app + "/../Resources",
 		app + "/../share/xfig-qt",
-		app + "/share/xfig-qt",
 		QStringLiteral(XFIGQT_SOURCE_DATADIR),
 	};
 	for (const QString &c : candidates)
@@ -118,8 +117,8 @@ main(int argc, char **argv)
 	/* defaults that differ from the X11 version (the command line wins) */
 	xq_set_resource("splash", "False");
 	xq_set_resource("library_dir", xq_data_path("Libraries"));
-	/* EPS and PDF pictures: Ghostscript is gswin64c on Windows, and an
-	   app started from the Finder has no Homebrew in its PATH */
+	/* EPS and PDF pictures: an app started from the Finder has no
+	   Homebrew in its PATH */
 	if (!find_ghostscript().isEmpty())
 		xq_set_resource("ghostscript", QFile::encodeName(find_ghostscript()));
 #ifdef Q_OS_MACOS
@@ -130,7 +129,7 @@ main(int argc, char **argv)
 			path = dir + QByteArray(":") + path;
 	qputenv("PATH", path);
 #endif
-	/* xfig wants TMPDIR, which Windows does not set */
+	/* xfig's temporary files: XFIGTMPDIR, TMPDIR, else Qt's temp dir */
 	if (!qEnvironmentVariableIsSet("XFIGTMPDIR"))
 		qputenv("XFIGTMPDIR", QFile::encodeName(QDir::tempPath()));
 

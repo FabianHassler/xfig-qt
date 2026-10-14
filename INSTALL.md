@@ -1,13 +1,13 @@
 # Installing xfig-qt
 
-xfig-qt builds with CMake on macOS, Linux and Windows. It needs:
+xfig-qt builds with CMake on macOS and Linux. It needs:
 
 | What | Why |
 |---|---|
 | Qt 6 (Widgets, PrintSupport), 6.4 or newer | the user interface |
 | fontconfig, FreeType | xfig's text, with the same font matching as X11 xfig |
 | libpng, libjpeg, libtiff (optional) | picture objects |
-| CUPS (macOS, Linux) | printing |
+| CUPS | printing |
 | a C11 and C++17 compiler, CMake 3.21, pkg-config | building |
 
 and, to run fully:
@@ -16,7 +16,7 @@ and, to run fully:
 |---|---|
 | **fig2dev** (3.2.9 or newer) | export and printing, as in X11 xfig |
 | **Ghostscript** (`gs`) | printing, and the previews of EPS and PDF pictures |
-| the URW base-35 fonts | xfig's PostScript fonts (Times, Helvetica, ...); macOS and Windows have suitable fonts |
+| the URW base-35 fonts | xfig's PostScript fonts (Times, Helvetica, ...); macOS has suitable fonts |
 
 Without fig2dev and Ghostscript xfig-qt still draws, edits, loads and
 saves figures.
@@ -112,51 +112,11 @@ If your distribution packages xfig (the X11 version), both install a
 
 ## Windows
 
-xfig-qt builds with MSYS2's MinGW-w64 tools (UCRT64).
-
-1. Install MSYS2 from <https://www.msys2.org> and open the
-   **MSYS2 UCRT64** shell.
-2. Install the tools and libraries:
-
-   ```sh
-   pacman -Syu
-   pacman -S git mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake \
-   	mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf \
-   	mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-fontconfig \
-   	mingw-w64-ucrt-x86_64-freetype mingw-w64-ucrt-x86_64-libpng \
-   	mingw-w64-ucrt-x86_64-libjpeg-turbo mingw-w64-ucrt-x86_64-libtiff \
-   	mingw-w64-ucrt-x86_64-libiconv mingw-w64-ucrt-x86_64-ghostscript
-   ```
-
-3. Build and install, here to `C:\xfig-qt`:
-
-   ```sh
-   git clone https://github.com/FabianHassler/xfig-qt.git
-   cd xfig-qt
-   cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-   cmake --build build
-   cmake --install build --prefix /c/xfig-qt
-   ```
-
-4. Start `xfig` from the UCRT64 shell, which has the libraries on its PATH:
-   `/c/xfig-qt/bin/xfig`. To start `C:\xfig-qt\bin\xfig.exe` from Explorer
-   too, copy the Qt and other libraries next to it:
-
-   ```sh
-   windeployqt6 /c/xfig-qt/bin/xfig.exe
-   ldd /c/xfig-qt/bin/xfig.exe | grep -i ucrt64 | awk '{print $3}' | \
-   	xargs -I{} cp {} /c/xfig-qt/bin/
-   ```
-
-On Windows:
-
-- **fig2dev** has no MSYS2 package. Without it, export and printing do not
-  work; drawing, editing, loading and saving do.
-- Printing goes through the Windows print dialog. Ghostscript renders the
-  pages at the printer's resolution, so the print is an image, not vector.
-- xfig's pre-edit window for input methods and editing text in an external
-  editor are not available (they need `fork()`).
-- `~user/` in file names is not expanded; `~/` is.
+There is no native Windows version: fig2dev, which xfig needs for export
+and printing, does not build on Windows. Windows 10 and 11 can run the
+Linux version in WSL2, whose WSLg shows Linux programs on the Windows
+desktop: install Ubuntu (`wsl --install`), then follow the Debian/Ubuntu
+instructions above inside it. This is not tested.
 
 ## Checking an installation
 

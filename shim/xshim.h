@@ -623,7 +623,7 @@ typedef Widget		*WidgetList;
 typedef struct _XtAppStruct *XtAppContext;
 typedef unsigned long	XtIntervalId;
 typedef unsigned long	XtInputId;
-/* holds pointers: intptr_t, as long is 32 bits on 64-bit Windows */
+/* holds pointers */
 typedef intptr_t	XtArgVal;
 typedef struct _TranslationData *XtTranslations;
 typedef struct _TranslationData *XtAccelerators;

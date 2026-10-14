@@ -1,22 +1,30 @@
 # xfig-qt — xfig 3.2.9a on Qt 6, without X11
 
 This runs the original xfig 3.2.9a source code (in `core/`) as a native Qt 6
-application on macOS. No XQuartz, Xlib, Xt or Xaw is needed.
+application on macOS and Linux. No X server, Xlib, Xt or Xaw is needed.
 
-## Build and run
+## Installation
+
+On macOS with Homebrew:
 
 ```sh
-brew install qt fontconfig freetype libpng jpeg libtiff fig2dev
-cmake -S . -B build -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
+brew install fabianhassler/tap/xfig-qt
+```
+
+On Linux, and from source on macOS, see [INSTALL.md](INSTALL.md): it lists
+the packages for Debian/Ubuntu, Fedora and Arch and the CMake build. In
+short:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j8
-open build/xfig.app --args ~/some/figure.fig     # or run the binary directly:
-build/xfig.app/Contents/MacOS/xfig figure.fig
+build/xfig figure.fig			# Linux
+open build/xfig.app --args figure.fig	# macOS
 ```
 
 xfig's command-line options still work (`-zoom 2`, `-metric`,
 `-startfontsize 14`, `-splash`, `-xrm 'Fig.resource: value'`, …).
-fig2dev must be on the `PATH` for export and printing, as with X11 xfig,
-and Ghostscript (`ps2pdf`) for printing.
+Export and printing need fig2dev and Ghostscript, as with X11 xfig.
 
 ## How it works
 
@@ -96,13 +104,13 @@ Verified with test scripts:
 - box, circle, polyline and text drawn interactively and saved to a correct
   `.fig` file;
 - native menus; mode panel; indicator panel, which switches with the mode;
-- File → Open…, Merge… and Save As… use the macOS file dialog, and Save
-  for a figure without a name too. Before a figure is replaced, a macOS
+- File → Open…, Merge… and Save As… use the system's file dialog, and Save
+  for a figure without a name too. Before a figure is replaced, an
   alert offers Save, Don't Save or Cancel. xfig's file panel (with its
   figure preview) is still there through xfig's keyboard accelerators;
-- File → Print… opens the macOS print dialog (printer, copies, pages,
+- File → Print… opens the system's print dialog (printer, copies, pages,
   two-sided, grayscale, Save as PDF). xfig's PostScript, made with its print
-  settings, becomes a PDF (Ghostscript's `ps2pdf`) that goes to CUPS, so the
+  settings, becomes a PDF (Ghostscript) that goes to CUPS, so the
   print stays vector. File → Print Options… is xfig's print panel, for
   magnification, layers, grid, background and multiple pages;
 - object edit dialog; export dialog;
@@ -117,7 +125,7 @@ Known gaps (next steps):
 - xfig's layouts use fixed pixel sizes made for X11 fonts. Labels and
   buttons grow to fit their text, but some dialogs may still look cramped;
 - no input method support for composed non-ASCII text input yet;
-- the Export panel's file name through the macOS save dialog (File →
-  Open…, Merge…, Save As… already use the macOS file dialog);
+- the Export panel's file name through the system's save dialog (File →
+  Open…, Merge…, Save As… already use the system's file dialog);
 - not yet done: a modern toolbar/dock look for the mode and indicator
   panels, trackpad pinch zoom, and a bundled fig2dev and fonts in the `.app`.

@@ -1,6 +1,6 @@
 #!/bin/sh
 # smoke_test.sh - run xfig-qt headless: find the data, open, save, snapshot
-# and print a figure to PDF.  Used by CI on macOS, Linux and Windows.
+# and print a figure to PDF.  Used by CI on macOS and Linux.
 #
 #	tests/smoke_test.sh path/to/xfig [--no-print]
 set -e
@@ -9,12 +9,8 @@ xfig=$1
 here=$(cd "$(dirname "$0")/.." && pwd)
 out=$(mktemp -d)
 
-# on Windows (MSYS2), xfig-qt is a Windows program: give it Windows paths
-native() {
-	if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi
-}
-fig=$(native "$here/data/Libraries/Examples/pictures.fig")
-o=$(native "$out")
+fig=$here/data/Libraries/Examples/pictures.fig
+o=$out
 
 script=$out/script.txt
 {
@@ -27,9 +23,7 @@ script=$out/script.txt
 	echo "quit"
 } > "$script"
 
-# a Windows GUI program logs to the debugger, unless told otherwise
-QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
-	XFIGQT_SCRIPT=$(native "$script") "$xfig" > "$out/log.txt" 2>&1 || true
+QT_QPA_PLATFORM=offscreen XFIGQT_SCRIPT=$script "$xfig" > "$out/log.txt" 2>&1 || true
 cat "$out/log.txt"
 
 fail=0

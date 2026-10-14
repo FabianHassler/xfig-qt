@@ -1,4 +1,4 @@
-# Build xfig-qt on macOS, Linux and Windows, and run the headless smoke test.
+# Build xfig-qt on macOS and Linux, and run the headless smoke test.
 name: build
 
 on:
@@ -50,62 +50,3 @@ jobs:
           path: smoke
       - name: Install
         run: cmake --install build --prefix "$PWD/inst"
-
-  windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-qt6-base
-            mingw-w64-ucrt-x86_64-fontconfig
-            mingw-w64-ucrt-x86_64-freetype
-            mingw-w64-ucrt-x86_64-libpng
-            mingw-w64-ucrt-x86_64-libjpeg-turbo
-            mingw-w64-ucrt-x86_64-libtiff
-            mingw-w64-ucrt-x86_64-libiconv
-            mingw-w64-ucrt-x86_64-ghostscript
-      - name: Build
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build -- -k 0
-      - name: fig2dev from source (MSYS2 has no package)
-        id: fig2dev
-        continue-on-error: true
-        run: |
-          pacman -S --noconfirm --needed make autoconf automake mingw-w64-ucrt-x86_64-libpng
-          curl -L -o fig2dev.tar.xz https://sourceforge.net/projects/mcj/files/fig2dev-3.2.9a.tar.xz/download
-          tar xf fig2dev.tar.xz
-          cd fig2dev-3.2.9a
-          ./configure --prefix="$PWD/../fig2dev-inst" --without-xpm
-          make -j4
-          make install
-          ../fig2dev-inst/bin/fig2dev -V
-      - name: Smoke test
-        run: |
-          if [ -x fig2dev-inst/bin/fig2dev.exe ]; then
-            export PATH="$PWD/fig2dev-inst/bin:$PATH"
-            SMOKE_OUT=smoke tests/smoke_test.sh build/xfig.exe
-          else
-            SMOKE_OUT=smoke tests/smoke_test.sh build/xfig.exe --no-print
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: smoke-windows
-          path: smoke
-      - name: Install
-        run: cmake --install build --prefix "$PWD/inst"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: xfig-qt-windows-build
-          path: inst

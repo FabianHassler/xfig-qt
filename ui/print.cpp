@@ -5,17 +5,13 @@
  * printer name.  Here xfig writes the same PostScript (its print settings:
  * magnification, paper, orientation, layers) to a file, and the print
  * dialog chooses printer, copies and pages.  Ghostscript makes a PDF of it,
- * which goes to CUPS on macOS and Linux (recent macOS no longer takes
- * PostScript), or to the file "Save as PDF" chose: it stays vector.
- * Windows has no CUPS: Ghostscript renders the pages at the printer's
- * resolution and Qt prints the images.
+ * which goes to CUPS (recent macOS no longer takes PostScript), or to the
+ * file "Save as PDF" chose: it stays vector.
  */
 /* before xq.h: the X11 shim defines GrayScale, a QPrinter enum value */
 #include <QtPrintSupport/QPrintDialog>
 #include <QtPrintSupport/QPrinter>
-#ifndef Q_OS_WIN
 #include <cups/cups.h>
-#endif
 
 #include "print.h"
 #include "bridge.h"
@@ -46,7 +42,7 @@ find_tool(const QStringList &names)
 QString
 find_ghostscript()
 {
-	static QString gs = find_tool({"gs", "gswin64c", "gswin32c"});
+	static QString gs = find_tool({"gs"});
 	return gs;
 }
 
@@ -75,46 +71,6 @@ ps_to_pdf(const QString &ps, const QString &pdf, QString *err)
 	return run_ghostscript({"-sDEVICE=pdfwrite", "-sOutputFile=" + pdf, ps}, err);
 }
 
-#ifdef Q_OS_WIN
-/* the pages as images at the printer's resolution, painted by Qt */
-static bool
-ps_to_printer(const QString &ps, QPrinter &printer, const QString &dir,
-		QString *err)
-{
-	int dpi = qBound(150, printer.resolution(), 600);
-	bool gray = printer.colorMode() == QPrinter::GrayScale;
-	if (!run_ghostscript({gray ? "-sDEVICE=pnggray" : "-sDEVICE=png16m",
-			QString("-r%1").arg(dpi), "-dTextAlphaBits=4",
-			"-dGraphicsAlphaBits=4", "-sOutputFile=" + dir + "/page%03d.png",
-			ps}, err))
-		return false;
-	QStringList pages = QDir(dir).entryList({"page*.png"}, QDir::Files,
-			QDir::Name);
-	int from = 1, to = pages.size();
-	if (printer.printRange() == QPrinter::PageRange) {
-		from = qMax(1, printer.fromPage());
-		to = qMin(to, printer.toPage());
-	}
-	printer.setFullPage(true);
-	QPainter p;
-	if (!p.begin(&printer)) {
-		*err = QString("Cannot print on \"%1\".").arg(printer.printerName());
-		return false;
-	}
-	QRectF paper = printer.paperRect(QPrinter::DevicePixel);
-	for (int i = from; i <= to; ++i) {
-		if (i > from)
-			printer.newPage();
-		p.drawImage(QRectF(0, 0, paper.width(), paper.height()),
-				QImage(QDir(dir).filePath(pages[i - 1])));
-	}
-	p.end();
-	xqb_message(QString("Sent \"%1\" to printer \"%2\"")
-			.arg(figure_title(), printer.printerName())
-			.toLocal8Bit().constData());
-	return true;
-}
-#else
 static bool
 pdf_to_cups(const QString &pdf, const QPrinter &printer, QString *err)
 {
@@ -160,7 +116,6 @@ pdf_to_cups(const QString &pdf, const QPrinter &printer, QString *err)
 			.toLocal8Bit().constData());
 	return true;
 }
-#endif
 
 bool
 print_figure_with(QPrinter &printer, QWidget *parent)
@@ -182,12 +137,8 @@ print_figure_with(QPrinter &printer, QWidget *parent)
 			xqb_message(QString("Saved \"%1\" as %2").arg(figure_title(),
 				printer.outputFileName()).toLocal8Bit().constData());
 	} else {
-#ifdef Q_OS_WIN
-		ok = ps_to_printer(ps, printer, tmp.path(), &err);
-#else
 		QString pdf = tmp.filePath("figure.pdf");
 		ok = ps_to_pdf(ps, pdf, &err) && pdf_to_cups(pdf, printer, &err);
-#endif
 	}
 	if (!ok && parent)
 		QMessageBox::warning(parent, "Print", err);
