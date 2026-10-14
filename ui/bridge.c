@@ -31,6 +31,7 @@
 #include "e_compound.h"
 #include "u_print.h"
 #include "w_export.h"
+#include "w_print.h"
 #include "xq_widget.h"
 #include "paintop.h"
 
@@ -299,22 +300,113 @@ xqb_export(const char *path, int lang)
 
 /* ------------------------------------------------- the native print dialog */
 
+/* the print panel's magnification, grid and background, as do_print()
+   takes them; grid holds at least 80 characters, backgrnd 10 */
+static void
+print_settings(char *backgrnd, char *grid)
+{
+	grid[0] = '\0';
+	if (print_popup) {
+		appres.magnification = (float)atof(panel_get_value(print_mag_text));
+		if (appres.magnification <= 0.0)
+			appres.magnification = 100.0;
+		print_update_figure_size();
+		get_grid_spec(grid, print_grid_minor_text, print_grid_major_text);
+	}
+	make_rgb_string(export_background_color, backgrnd);
+}
+
 /* xfig's print output, PostScript from fig2dev with the print settings
-   (magnification, paper, orientation, layers...), written to file */
+   (magnification, paper, orientation, layers, grid, background...),
+   written to file */
 int
 xqb_print_to_file(const char *file)
 {
 	int	fd, stat;
+	char	backgrnd[10], grid[80];
 
 	if (check_action_on() || emptyfigure_msg("Print"))
 		return -1;
+	print_settings(backgrnd, grid);
 	if ((fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0) {
 		file_msg("Cannot write print file %s: %s", file, strerror(errno));
 		return -1;
 	}
-	stat = print_to_batchfile(fd, "", "");
+	stat = print_to_batchfile(fd, backgrnd, grid);
 	close(fd);
 	return stat ? -1 : 0;
+}
+
+/*
+ * xfig's print panel, as print options: the printer, its command (lp or
+ * lpr), job parameters and the batch are the print dialog's business, so
+ * these rows go; "Print FIGURE to Printer" opens the print dialog.
+ */
+static void	(*native_print)(void);
+
+void
+xqb_set_native_print(void (*print)(void))
+{
+	native_print = print;
+}
+
+static void
+native_print_handler(Widget w, XtPointer client, XEvent *ev, Boolean *cont)
+{
+	(void)w;
+	(void)client;
+	(void)ev;
+	(void)cont;
+	if (native_print)
+		native_print();
+}
+
+void
+xqb_adapt_print_panel(void)
+{
+	static const char *const gone[] = {"printcommand_label", "printcommand",
+		"printer_label", "printer", "printer_names", "job_params_label",
+		"job_params", "num_batch_label", "num_batch", "print_batch",
+		"clear_batch", NULL};
+	static Boolean	done = False;
+	Widget		removed[16];
+	int		n = 0;
+	XtArgVal	anchor = 0;
+
+	if (done || !print_panel)
+		return;
+	done = True;
+	/* the rows hang below the grid row; the print command row is first */
+	Widget pc = find_named(print_panel, "printcommand_label");
+	if (pc)
+		XtVaGetValues(pc, XtNfromVert, &anchor, NULL);
+	for (int i = 0; gone[i]; ++i) {
+		Widget w = find_named(print_panel, gone[i]);
+		if (w) {
+			XtUnmanageChild(w);
+			removed[n++] = w;
+		}
+	}
+	/* what hung below a removed row hangs below the grid row */
+	for (int i = 0; i < xq_widget_num_children(print_panel); ++i) {
+		Widget c = xq_widget_child(print_panel, i);
+		XtArgVal fv = 0;
+		XtVaGetValues(c, XtNfromVert, &fv, NULL);
+		for (int k = 0; k < n; ++k)
+			if ((Widget)fv == removed[k])
+				XtVaSetValues(c, XtNfromVert, anchor, NULL);
+	}
+	Widget label = find_named(print_panel, "print_label");
+	if (label)
+		XtVaSetValues(label, XtNlabel, "Print Options", NULL);
+	Widget print = find_named(print_panel, "print");
+	if (print) {
+		XtRemoveEventHandler(print, ButtonReleaseMask, False,
+				(XtEventHandler)do_print, NULL);
+		XtAddEventHandler(print, ButtonReleaseMask, False,
+				native_print_handler, NULL);
+		XtVaSetValues(print, XtNlabel, "Print...", NULL);
+	}
 }
 
 void

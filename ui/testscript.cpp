@@ -10,6 +10,8 @@
  *	key <text>			type text on the canvas ("\r" etc. allowed)
  *	widget <name> [index]		click the index-th xfig widget of that name
  *	menu <menu> <entry prefix>	trigger a menu entry
+ *	xmenu <menu> <entry prefix>	xfig's own menu entry (its panels, not
+ *					the native file and print dialogs)
  *	wait <ms>
  *	snap <file.png>			save the main window
  *	snapcanvas <file.png>		save the drawing canvas only
@@ -159,6 +161,24 @@ run(QStringList lines)
 			}
 			if (!found)
 				qWarning("no menu entry %s / %s", qPrintable(m), qPrintable(entry));
+		} else if (cmd == "xmenu") {
+			QString m = a.value(1), entry = line.section(' ', 2);
+			bool found = false;
+			for (int i = 0; i < xqb_num_menus() && !found; ++i) {
+				if (QString::fromLatin1(xqb_menu_title(i)).trimmed() != m)
+					continue;
+				Widget menu = xqb_menu_widget(i);
+				for (int k = 0; menu && k < xq_widget_num_children(menu); ++k) {
+					Widget e = xq_widget_child(menu, k);
+					if (QString::fromUtf8(xq_widget_label(e)).trimmed().startsWith(entry)) {
+						xq_call_callbacks(e, XtNcallback, nullptr);
+						found = true;
+						break;
+					}
+				}
+			}
+			if (!found)
+				qWarning("no xfig menu entry %s / %s", qPrintable(m), qPrintable(entry));
 		} else if (cmd == "snap") {
 			MainWindow::instance()->grab().save(a.value(1));
 		} else if (cmd == "snapcanvas") {

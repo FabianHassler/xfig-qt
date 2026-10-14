@@ -117,6 +117,8 @@ main(int argc, char **argv)
 	/* defaults that differ from the X11 version (the command line wins) */
 	xq_set_resource("splash", "False");
 	xq_set_resource("library_dir", xq_data_path("Libraries"));
+	/* the print panel's Print button opens the print dialog */
+	xqb_set_native_print([] { print_figure(MainWindow::instance()); });
 	/* EPS and PDF pictures: an app started from the Finder has no
 	   Homebrew in its PATH */
 	if (!find_ghostscript().isEmpty())

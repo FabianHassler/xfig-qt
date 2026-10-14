@@ -1637,6 +1637,9 @@ hook_popup(Widget w, XtGrabKind k)
 		QTimer::singleShot(0, [w] { if (xq_widget_popped(w)) popup_simple_menu(w); });
 		return;
 	}
+	/* xfig's print panel holds only print options here */
+	if (!strcmp(xq_widget_name(w), "print_popup"))
+		xqb_adapt_print_panel();
 	if (XawShell *sh = qobject_cast<XawShell *>(XawPeer::of(w)))
 		sh->popup(k);
 }
