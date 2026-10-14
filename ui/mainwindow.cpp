@@ -203,6 +203,34 @@ MainWindow::fillMenu(QMenu *qm, int index)
 			xq_call_callbacks(e, XtNcallback, nullptr);
 		});
 	}
+	/* the Help menu: this port's version and credits, after xfig's About */
+	bool help = false;
+	for (QAction *a : qm->actions())
+		help |= a->menuRole() == QAction::AboutRole;
+	if (help) {
+		QAction *a = qm->addAction("About xfig-qt...");
+		a->setMenuRole(QAction::ApplicationSpecificRole);
+		connect(a, &QAction::triggered, this, [this] {
+			QMessageBox::about(this, "About xfig-qt", QString(
+				"<h3>xfig-qt %1</h3>"
+				"<p>xfig 3.2.9a, the Facility for Interactive Generation "
+				"of figures, running on Qt %2 instead of X11.</p>"
+				"<p>xfig: Copyright &copy; 1985&ndash;1988 Supoj Sutanthavibul, "
+				"parts &copy; 1989&ndash;2015 Brian V. Smith, &copy; 1991 Paul "
+				"King, &copy; 2016&ndash;2024 Thomas Loimer, and many "
+				"contributors, under xfig's license. "
+				"<a href=\"https://sourceforge.net/projects/mcj/\">"
+				"sourceforge.net/projects/mcj</a></p>"
+				"<p>This software is based in part on the work of the "
+				"Independent JPEG Group.</p>"
+				"<p>The Qt port: Copyright &copy; 2026 Fabian Hassler, MIT "
+				"License. <a href=\"https://github.com/FabianHassler/xfig-qt\">"
+				"github.com/FabianHassler/xfig-qt</a></p>"
+				"<p>See the file LICENSE for all terms.</p>")
+				.arg(QApplication::applicationVersion(), qVersion()));
+		});
+	}
+
 	/* no separator at the end */
 	while (!qm->actions().isEmpty() && qm->actions().last()->isSeparator())
 		qm->removeAction(qm->actions().last());

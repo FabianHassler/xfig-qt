@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
-project(xfig-qt VERSION 3.2.9 LANGUAGES C CXX)
+# xfig-qt's own version; the xfig it runs is 3.2.9a (PACKAGE_VERSION below)
+project(xfig-qt VERSION 1.0.0 LANGUAGES C CXX)
+set(XFIGQT_VERSION "1.0.0-rc1")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS ON)
@@ -86,7 +88,8 @@ qt_add_executable(xfig MACOSX_BUNDLE
 target_include_directories(xfig PRIVATE platform ui)
 # running from the build directory, xfig's data is data/ in the sources
 target_compile_definitions(xfig PRIVATE
-	XFIGQT_SOURCE_DATADIR="${CMAKE_SOURCE_DIR}/data")
+	XFIGQT_SOURCE_DATADIR="${CMAKE_SOURCE_DIR}/data"
+	XFIGQT_VERSION="${XFIGQT_VERSION}")
 target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport
 	Qt6::Svg)
 if(Qt6Pdf_FOUND)
@@ -102,7 +105,9 @@ target_link_libraries(xfig PRIVATE ${CUPS_LIBRARY})
 set_target_properties(xfig PROPERTIES
 	MACOSX_BUNDLE_BUNDLE_NAME "Xfig"
 	MACOSX_BUNDLE_GUI_IDENTIFIER "org.xfig.xfig"
-	MACOSX_BUNDLE_SHORT_VERSION_STRING "3.2.9a")
+	MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+	MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+	MACOSX_BUNDLE_INFO_STRING "xfig-qt ${XFIGQT_VERSION}, xfig 3.2.9a on Qt")
 
 # --------------------------------------------------------------- install
 # xfig's data: CompKeyDB, Libraries/ (object library), doc/ (help).  The

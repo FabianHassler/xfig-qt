@@ -62,6 +62,7 @@ main(int argc, char **argv)
 {
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("Xfig");
+	QApplication::setApplicationVersion(XFIGQT_VERSION);
 	QApplication::setOrganizationDomain("xfig.org");
 	/* xfig's icons and colors are made for a light background */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)

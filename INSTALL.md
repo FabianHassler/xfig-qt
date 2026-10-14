@@ -42,7 +42,10 @@ brew install fabianhassler/tap/xfig-qt
 ```
 
 This builds xfig-qt and installs `xfig` and the app `xfig.app`; fig2dev and
-Ghostscript come along (`--without-ghostscript` leaves Ghostscript out). To start it from the Finder or Launchpad:
+Ghostscript come along (`--without-ghostscript` leaves Ghostscript out).
+If you installed one of the first releases (3.2.9a-qt1 to -qt3), use
+`brew reinstall xfig-qt` once: Homebrew counts the new 1.0 versions as
+older than those. To start it from the Finder or Launchpad:
 
 ```sh
 ln -sf "$(brew --prefix xfig-qt)/xfig.app" /Applications/Xfig.app

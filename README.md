@@ -1,5 +1,9 @@
 # xfig-qt — xfig 3.2.9a on Qt 6, without X11
 
+Version 1.0.0-rc1, the release candidate for xfig-qt 1.0. xfig-qt has its
+own version numbers; the xfig it runs is 3.2.9a. (The earlier releases
+were tagged v3.2.9a-qt1 to -qt3.)
+
 This runs the original xfig 3.2.9a source code (in `core/`) as a native Qt 6
 application on macOS and Linux. No X server, Xlib, Xt or Xaw is needed.
 
