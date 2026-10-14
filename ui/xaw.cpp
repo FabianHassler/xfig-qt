@@ -727,6 +727,7 @@ XawPeer::mousePressEvent(QMouseEvent *e)
 {
 	if (focusPolicy() != Qt::NoFocus)
 		setFocus(Qt::MouseFocusReason);
+	xqb_input_seen();
 	m_pressed = xButton(e);
 	if (!m_pressed)
 		return;
@@ -967,6 +968,7 @@ XawPeer::makeKey(XEvent &ev, int type, QKeyEvent *e)
 void
 XawPeer::keyPressEvent(QKeyEvent *e)
 {
+	xqb_input_seen();
 	XEvent ev;
 	if (makeKey(ev, KeyPress, e))
 		sendEvent(ev);

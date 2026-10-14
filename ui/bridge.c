@@ -37,6 +37,7 @@
 #include "xq_widget.h"
 #include "paintop.h"
 #include "svgout.h"
+#include "w_icons.h"
 #include "e_edit.h"
 #include "f_picobj.h"
 
@@ -803,4 +804,39 @@ xq_popup_browse_panel(Widget w)
 		free(path);
 	/* reads the picture and shows it in the dialog */
 	push_apply_button();
+}
+
+/* --------------------------------------------------------- the splash */
+
+/*
+ * xfig's splash, the faint version letters on the empty canvas, and
+ * below them the version of xfig-qt.  xfig clears it in its own main loop
+ * on the first key or button press; here the Qt peers call
+ * xqb_input_seen().
+ */
+extern void	splash_screen(void);
+static void	(*splash_text)(Window win, int x, int y, int w, int h);
+
+void
+xqb_set_splash_text(void (*draw)(Window win, int x, int y, int w, int h))
+{
+	splash_text = draw;
+}
+
+void
+xq_splash_screen(void)
+{
+	splash_screen();
+	if (splash_text && splash_onscreen)
+		splash_text(canvas_win,
+			(CANVAS_WD - spl_bckgnd_ic.width) / 2 + 325,
+			(CANVAS_HT - spl_bckgnd_ic.height) / 2 + 30,
+			letters_ic.width, letters_ic.height);
+}
+
+void
+xqb_input_seen(void)
+{
+	if (splash_onscreen)
+		clear_splash();
 }

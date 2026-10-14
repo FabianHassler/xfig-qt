@@ -61,8 +61,10 @@ set_source_files_properties(core/f_readeps.c PROPERTIES
 # the picture's Browse... opens the file dialog (ui/bridge.c)
 set_source_files_properties(core/e_edit.c PROPERTIES
 	COMPILE_DEFINITIONS popup_browse_panel=xq_popup_browse_panel)
-# xfig's main() becomes xfig_main(), called by the Qt main()
-set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
+# xfig's main() becomes xfig_main(), called by the Qt main(); its splash
+# gets xfig-qt's version too (ui/bridge.c)
+set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS
+	"main=xfig_main;splash_screen=xq_splash_screen")
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE
 	PkgConfig::PNG JPEG::JPEG m)
 if(APPLE)
