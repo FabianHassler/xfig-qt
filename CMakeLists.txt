@@ -60,7 +60,7 @@ if(WIN32)
 	target_compile_options(xfigcore PUBLIC
 		"$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_SOURCE_DIR}/shim/win32/xq_win32.h>")
 	set_source_files_properties(core/f_readjpg.c PROPERTIES COMPILE_OPTIONS
-		"SHELL:-include ${CMAKE_SOURCE_DIR}/shim/win32/xq_win32_jpeg.h")
+		"-include;${CMAKE_SOURCE_DIR}/shim/win32/xq_win32_jpeg.h")
 	# iconv from MSYS2 (libiconv); regex.h is shim/win32/regex.cpp
 	find_library(ICONV_LIBRARY iconv REQUIRED)
 	target_link_libraries(xfigcore PUBLIC ${ICONV_LIBRARY})
