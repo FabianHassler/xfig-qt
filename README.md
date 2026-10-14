@@ -107,6 +107,12 @@ Known gaps (next steps):
 - xfig's layouts use fixed pixel sizes made for X11 fonts. Labels and
   buttons grow to fit their text, but some dialogs may still look cramped;
 - no input method support for composed non-ASCII text input yet;
-- not yet done: native file dialogs instead of xfig's Xaw file browser, a
-  modern toolbar/dock look for the mode and indicator panels,
-  trackpad pinch zoom, and a bundled fig2dev and fonts in the `.app`.
+- native file dialogs: File → Open…, Merge…, Save As… and the Export file
+  name through the macOS dialog (`QFileDialog`) instead of xfig's Xaw file
+  browser, which loses its figure preview;
+- native printing: fig2dev makes a PDF, the macOS print dialog
+  (`QPrintDialog`) chooses printer, copies and pages, and the PDF goes to
+  the printer through CUPS, so it stays vector. Today xfig pipes to `lp` or
+  `lpr` with a typed printer name and options;
+- not yet done: a modern toolbar/dock look for the mode and indicator
+  panels, trackpad pinch zoom, and a bundled fig2dev and fonts in the `.app`.
