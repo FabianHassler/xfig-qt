@@ -65,7 +65,9 @@ main(int argc, char **argv)
 	QApplication::setApplicationName("Xfig");
 	QApplication::setOrganizationDomain("xfig.org");
 	/* xfig's icons and colors are made for a light background */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
 	QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+#endif
 	/* a light gray for the panels, white stays for the canvas and fields */
 	QPalette pal = QApplication::palette();
 	pal.setColor(QPalette::Window, QColor(0xdc, 0xdc, 0xdc));

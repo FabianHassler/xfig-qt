@@ -27,7 +27,8 @@ endif()
 if(WIN32)
 	# no fork() or posix_spawn(): shim/u_spawn_win.c starts processes
 	list(REMOVE_ITEM CORE_SOURCES ${CMAKE_SOURCE_DIR}/core/u_spawn.c)
-	list(APPEND CORE_SOURCES shim/u_spawn_win.c shim/win32/compat.c)
+	list(APPEND CORE_SOURCES shim/u_spawn_win.c shim/win32/compat.c
+		shim/win32/regex.cpp)
 endif()
 
 add_library(xfigcore STATIC
@@ -58,10 +59,9 @@ if(WIN32)
 	target_include_directories(xfigcore PUBLIC shim/win32)
 	target_compile_options(xfigcore PUBLIC
 		"$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_SOURCE_DIR}/shim/win32/xq_win32.h>")
-	# regex.h and iconv from MSYS2 (libgnurx, libiconv)
-	find_library(GNURX_LIBRARY gnurx REQUIRED)
+	# iconv from MSYS2 (libiconv); regex.h is shim/win32/regex.cpp
 	find_library(ICONV_LIBRARY iconv REQUIRED)
-	target_link_libraries(xfigcore PUBLIC ${GNURX_LIBRARY} ${ICONV_LIBRARY})
+	target_link_libraries(xfigcore PUBLIC ${ICONV_LIBRARY})
 elseif(APPLE)
 	target_link_libraries(xfigcore PUBLIC iconv)
 endif()

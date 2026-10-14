@@ -65,7 +65,6 @@ jobs:
             mingw-w64-ucrt-x86_64-libpng
             mingw-w64-ucrt-x86_64-libjpeg-turbo
             mingw-w64-ucrt-x86_64-libtiff
-            mingw-w64-ucrt-x86_64-libgnurx
             mingw-w64-ucrt-x86_64-libiconv
             mingw-w64-ucrt-x86_64-ghostscript
       - name: Build
