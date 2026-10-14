@@ -61,6 +61,26 @@ XawPeer::of(Widget w)
 	return w ? static_cast<XawPeer *>(xq_widget_peer(w)) : nullptr;
 }
 
+/* the popup shell named name, a child of w or of one of its ancestors */
+static Widget
+find_popup(Widget w, const char *name)
+{
+	for (Widget a = w; a && name; a = xq_widget_parent(a))
+		for (int i = 0; i < xq_widget_num_children(a); ++i)
+			if (!strcmp(xq_widget_name(xq_widget_child(a, i)), name))
+				return xq_widget_child(a, i);
+	return nullptr;
+}
+
+/* the menu a MenuButton pops up: menuName, by default "menu", searched
+   from the button up the widget tree, as Xaw does */
+Widget
+xaw_menu_of(Widget button)
+{
+	const char *name = (const char *)res(button, XtNmenuName);
+	return find_popup(button, name ? name : "menu");
+}
+
 XawPeer *
 XawPeer::forWindow(Window win)
 {
@@ -186,6 +206,14 @@ void
 XawPeer::sync()
 {
 	setEnabled(XtIsSensitive(m_w));
+	/* xfig's info balloon (XawTipEnable() and XtNtip), as a tooltip */
+	const char *tip = (const char *)res(m_w, XtNtip);
+	bool on = res(m_w, "xqTip") && tip && *tip;
+	if (on)
+		setToolTip(qstr(tip).trimmed());
+	else if (m_tip)
+		setToolTip(QString());
+	m_tip = on;
 	fitToViewport();
 	if (m_adopted)
 		scheduleLayout();
@@ -533,7 +561,7 @@ XawPeer::paintLabel(QPainter &p, QRect r)
 	if (!text.contains('\n') && p.fontMetrics().horizontalAdvance(text) > tr.width()) {
 		QString full = text;
 		text = p.fontMetrics().elidedText(text.trimmed(), Qt::ElideRight, tr.width());
-		if (toolTip() != full.trimmed())
+		if (!m_tip && toolTip() != full.trimmed())
 			const_cast<XawPeer *>(this)->setToolTip(full.trimmed());
 	}
 	p.drawText(tr, align, text);
@@ -711,17 +739,7 @@ XawPeer::mousePressEvent(QMouseEvent *e)
 	sendEvent(ev);
 	if (m_kind == MenuButton && m_pressed == Button1 && !translated) {
 		/* pop up the menu named by menuName below the button */
-		const char *name = (const char *)res(m_w, XtNmenuName);
-		if (!name)	/* the MenuButton's default */
-			name = "menu";
-		Widget menu = nullptr;
-		for (Widget a = m_w; a && !menu && name; a = xq_widget_parent(a)) {
-			for (int i = 0; i < xq_widget_num_children(a); ++i)
-				if (!strcmp(xq_widget_name(xq_widget_child(a, i)), name)) {
-					menu = xq_widget_child(a, i);
-					break;
-				}
-		}
+		Widget menu = xaw_menu_of(m_w);
 		if (menu) {
 			QPoint g = mapToGlobal(rect().bottomLeft());
 			xq_widget_set_position(menu, g.x(), g.y());
@@ -828,6 +846,22 @@ XawPeer::mouseMoveEvent(QMouseEvent *e)
 void
 XawPeer::wheelEvent(QWheelEvent *e)
 {
+	/* the mode panel has no use for the wheel: it scrolls the panel
+	   (MainWindow puts it into a scroll area) */
+	for (Widget a = m_w; a; a = xq_widget_parent(a))
+		if (!strcmp(xq_widget_name(a), "mode_panel")) {
+			for (QWidget *p = parentWidget(); p; p = p->parentWidget())
+				if (auto *area = qobject_cast<QAbstractScrollArea *>(p)) {
+					/* trackpads give pixels, wheels steps of 120 */
+					QScrollBar *bar = area->verticalScrollBar();
+					int dy = !e->pixelDelta().isNull() ? e->pixelDelta().y() :
+						e->angleDelta().y() * 3 * bar->singleStep() / 120;
+					bar->setValue(bar->value() - dy);
+					break;
+				}
+			e->accept();
+			return;
+		}
 	m_wheel += QPointF(e->angleDelta());
 	while (std::abs(m_wheel.y()) >= 120 || std::abs(m_wheel.x()) >= 120) {
 		unsigned button;
@@ -1076,16 +1110,6 @@ XawShell::closeEvent(QCloseEvent *e)
 
 /* ----------------------------------------------------------- menus */
 
-/* the popup shell named name, a child of w or of one of its ancestors */
-static Widget
-find_popup(Widget w, const char *name)
-{
-	for (Widget a = w; a && name; a = xq_widget_parent(a))
-		for (int i = 0; i < xq_widget_num_children(a); ++i)
-			if (!strcmp(xq_widget_name(xq_widget_child(a, i)), name))
-				return xq_widget_child(a, i);
-	return nullptr;
-}
 
 /* xfig marks checked entries with a left bitmap that is not blank */
 static bool

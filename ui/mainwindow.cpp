@@ -83,7 +83,9 @@ menu_text(const QString &label, QKeySequence *key)
 			mods |= Qt::AltModifier;
 		*key = QKeySequence(QKeyCombination(mods, k));
 	}
-	static const QRegularExpression paren("\\s*\\([^)]*\\)");
+	/* the shortcuts only: "(HTML)" and "(PDF)" in Help stay */
+	static const QRegularExpression paren("\\s*\\((Quick = [^)]*|"
+			"(Shift-|Meta-|Ctrl-)+[^)]*|F\\d+(/F\\d+)?|[A-Za-z])\\)");
 	t.remove(paren);
 	return t.trimmed();
 }
@@ -201,6 +203,9 @@ MainWindow::fillMenu(QMenu *qm, int index)
 			xq_call_callbacks(e, XtNcallback, nullptr);
 		});
 	}
+	/* no separator at the end */
+	while (!qm->actions().isEmpty() && qm->actions().last()->isSeparator())
+		qm->removeAction(qm->actions().last());
 }
 
 /* ----------------------------------------------------------------- rulers */
@@ -442,6 +447,7 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		m_modeScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 		m_modeScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 		m_modeScroll->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+		m_modeScroll->verticalScrollBar()->setSingleStep(12);
 		p->setParent(nullptr);
 		m_modeScroll->setWidget(p);
 		m_left->addWidget(m_modeScroll, 1);

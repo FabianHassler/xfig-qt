@@ -14,8 +14,9 @@
 #include "xq_widget.h"
 
 /* Xaw */
-void XawTipEnable(Widget w) { (void)w; }
-void XawTipDisable(Widget w) { (void)w; }
+/* xfig's info balloons: the peer shows XtNtip as its tooltip (ui/xaw.cpp) */
+void XawTipEnable(Widget w) { XtVaSetValues(w, "xqTip", (XtArgVal)1, NULL); }
+void XawTipDisable(Widget w) { XtVaSetValues(w, "xqTip", (XtArgVal)0, NULL); }
 
 void
 XawScrollbarSetThumb(Widget w, float top, float shown)

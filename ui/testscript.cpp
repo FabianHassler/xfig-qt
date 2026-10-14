@@ -178,6 +178,77 @@ run(QStringList lines)
 					hit = m->actions().first();
 				return hit;
 			};
+		} else if (cmd == "tooltip") {
+			/* tooltip <widget name> [index]: print its tooltip */
+			int index = int(num(2));
+			QByteArray n = a.value(1).toLatin1();
+			Widget w = nullptr;
+			for (Widget root : xqb_root_widgets())
+				if ((w = find_widget(root, n.constData(), index)))
+					break;
+			XawPeer *p = XawPeer::of(w);
+			printf("tooltip %s %d: %s\n", n.constData(), int(num(2)),
+				p ? qPrintable(p->toolTip()) : "(no widget)");
+			fflush(stdout);
+		} else if (cmd == "wheel") {
+			/* wheel <widget name> <steps>: negative scrolls down */
+			int index = 0;
+			QByteArray n = a.value(1).toLatin1();
+			Widget w = nullptr;
+			for (Widget root : xqb_root_widgets())
+				if ((w = find_widget(root, n.constData(), index)))
+					break;
+			if (XawPeer *p = XawPeer::of(w)) {
+				QPointF c(p->width() / 2, p->height() / 2);
+				QWheelEvent e(c, p->mapToGlobal(c), QPoint(),
+					QPoint(0, int(num(2)) * 120), Qt::NoButton,
+					Qt::NoModifier, Qt::NoScrollPhase, false);
+				QApplication::sendEvent(p, &e);
+			}
+		} else if (cmd == "resize") {
+			MainWindow::instance()->resize(int(num(1)), int(num(2)));
+		} else if (cmd == "nativemenus") {
+			/* the menu bar, as built from xfig's menus */
+			for (QAction *top : MainWindow::instance()->menuBar()->actions()) {
+				if (!top->menu())
+					continue;
+				emit top->menu()->aboutToShow();
+				for (QAction *e : top->menu()->actions())
+					printf("native %s | %s%s\n", qPrintable(top->text()),
+						e->isSeparator() ? "----" : qPrintable(e->text()),
+						e->isEnabled() ? "" : " (disabled)");
+			}
+			for (int i = 0; i < xqb_num_menus(); ++i) {
+				Widget m = xqb_menu_widget(i);
+				for (int j = 0; m && j < xq_widget_num_children(m); ++j) {
+					Widget e = xq_widget_child(m, j);
+					printf("xfig %s | %s\n", xqb_menu_title(i),
+						!strcmp(xq_widget_class(e), "SmeLine") ? "----" :
+						xq_widget_label(e) ? xq_widget_label(e) : xq_widget_name(e));
+				}
+			}
+			fflush(stdout);
+		} else if (cmd == "menubuttons") {
+			/* every MenuButton, and the menu it pops up */
+			std::function<void(Widget)> walk = [&](Widget w) {
+				if (!strcmp(xq_widget_class(w), "MenuButton")) {
+					Widget m = xaw_menu_of(w);
+					int n = 0;
+					for (int i = 0; m && i < xq_widget_num_children(m); ++i)
+						n += XtIsManaged(xq_widget_child(m, i));
+					QString path;
+					for (Widget a = w; a; a = xq_widget_parent(a))
+						path = QString::fromLatin1(xq_widget_name(a)) + "/" + path;
+					printf("menubutton %s -> %s %s, %d entries\n", qPrintable(path),
+						m ? xq_widget_class(m) : "NONE",
+						m ? xq_widget_name(m) : "", n);
+				}
+				for (int i = 0; i < xq_widget_num_children(w); ++i)
+					walk(xq_widget_child(w, i));
+			};
+			for (Widget root : xqb_root_widgets())
+				walk(root);
+			fflush(stdout);
 		} else if (cmd == "menu") {
 			QString m = a.value(1), entry = line.section(' ', 2);
 			bool found = false;

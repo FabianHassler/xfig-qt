@@ -14,6 +14,9 @@
 #include "xq.h"
 #include "xq_widget.h"
 
+/* the menu a MenuButton pops up */
+Widget	xaw_menu_of(Widget button);
+
 class XawPeer : public QWidget
 {
 	Q_OBJECT
@@ -102,6 +105,7 @@ protected:
 	bool	m_host = false;
 	bool	m_adopted = false;
 	bool	m_drawn = false;
+	bool	m_tip = false;		/* the tooltip is xfig's XtNtip */
 	bool	m_hover = false;
 	bool	m_down = false;
 	bool	m_layoutPending = false;
