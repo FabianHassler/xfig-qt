@@ -8,20 +8,28 @@ set -e
 xfig=$1
 here=$(cd "$(dirname "$0")/.." && pwd)
 out=$(mktemp -d)
-fig=$here/data/Libraries/Examples/pictures.fig
+
+# on Windows (MSYS2), xfig-qt is a Windows program: give it Windows paths
+native() {
+	if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi
+}
+fig=$(native "$here/data/Libraries/Examples/pictures.fig")
+o=$(native "$out")
 
 script=$out/script.txt
 {
 	echo "datadir"
 	echo "open $fig"
 	echo "wait 500"
-	echo "snapcanvas $out/canvas.png"
-	echo "saveas $out/saved.fig"
-	[ "$2" = --no-print ] || echo "printpdf $out/printed.pdf"
+	echo "snapcanvas $o/canvas.png"
+	echo "saveas $o/saved.fig"
+	[ "$2" = --no-print ] || echo "printpdf $o/printed.pdf"
 	echo "quit"
 } > "$script"
 
-QT_QPA_PLATFORM=offscreen XFIGQT_SCRIPT=$script "$xfig" > "$out/log.txt" 2>&1 || true
+# a Windows GUI program logs to the debugger, unless told otherwise
+QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
+	XFIGQT_SCRIPT=$(native "$script") "$xfig" > "$out/log.txt" 2>&1 || true
 cat "$out/log.txt"
 
 fail=0
