@@ -18,7 +18,11 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
           cmake --build build -j4
       - name: Smoke test
-        run: tests/smoke_test.sh build/xfig.app/Contents/MacOS/xfig
+        run: SMOKE_OUT=smoke tests/smoke_test.sh build/xfig.app/Contents/MacOS/xfig
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-macos
+          path: smoke
       - name: Install
         run: cmake --install build --prefix "$PWD/inst"
 
@@ -39,7 +43,11 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j4
       - name: Smoke test
-        run: tests/smoke_test.sh build/xfig
+        run: SMOKE_OUT=smoke tests/smoke_test.sh build/xfig
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-linux
+          path: smoke
       - name: Install
         run: cmake --install build --prefix "$PWD/inst"
 
@@ -71,9 +79,30 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- -k 0
+      - name: fig2dev from source (MSYS2 has no package)
+        id: fig2dev
+        continue-on-error: true
+        run: |
+          pacman -S --noconfirm --needed make autoconf automake mingw-w64-ucrt-x86_64-libpng
+          curl -L -o fig2dev.tar.xz https://sourceforge.net/projects/mcj/files/fig2dev-3.2.9a.tar.xz/download
+          tar xf fig2dev.tar.xz
+          cd fig2dev-3.2.9a
+          ./configure --prefix="$PWD/../fig2dev-inst" --without-xpm
+          make -j4
+          make install
+          ../fig2dev-inst/bin/fig2dev -V
       - name: Smoke test
-        # no fig2dev package in MSYS2 yet: printing is not tested here
-        run: tests/smoke_test.sh build/xfig.exe --no-print
+        run: |
+          if [ -x fig2dev-inst/bin/fig2dev.exe ]; then
+            export PATH="$PWD/fig2dev-inst/bin:$PATH"
+            SMOKE_OUT=smoke tests/smoke_test.sh build/xfig.exe
+          else
+            SMOKE_OUT=smoke tests/smoke_test.sh build/xfig.exe --no-print
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-windows
+          path: smoke
       - name: Install
         run: cmake --install build --prefix "$PWD/inst"
       - uses: actions/upload-artifact@v4

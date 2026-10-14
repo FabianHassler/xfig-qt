@@ -48,5 +48,10 @@ check "$(grep -c '^4 ' "$out/saved.fig" 2>/dev/null | grep -v '^0$')" "saved fig
 if [ "$2" != --no-print ]; then
 	check "$(head -c 4 "$out/printed.pdf" 2>/dev/null | grep '%PDF')" "printed to PDF"
 fi
+# SMOKE_OUT=dir keeps the canvas snapshot and the saved figure
+if [ -n "$SMOKE_OUT" ]; then
+	mkdir -p "$SMOKE_OUT"
+	cp "$out"/canvas.png "$out"/saved.fig "$SMOKE_OUT"/ 2>/dev/null || true
+fi
 rm -rf "$out"
 exit $fail
