@@ -436,9 +436,15 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->show();
 	} else if (n == "mode_panel") {
 		m_modePanel = p;
+		/* xfig's two columns; a window too low for them scrolls */
+		m_modeScroll = new QScrollArea;
+		m_modeScroll->setFrameShape(QFrame::NoFrame);
+		m_modeScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		m_modeScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+		m_modeScroll->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 		p->setParent(nullptr);
-		m_left->addWidget(p, 0, Qt::AlignTop | Qt::AlignHCenter);
-		m_left->addStretch(1);
+		m_modeScroll->setWidget(p);
+		m_left->addWidget(m_modeScroll, 1);
 		p->show();
 	} else if (n == "snap_indicator_form") {
 		/* xfig makes it as tall as the canvas; it needs only two lines */
@@ -517,8 +523,9 @@ MainWindow::widgetSetValues(Widget w, ArgList args, Cardinal n)
 }
 
 /*
- * Use the fewest columns of mode buttons that fit the window's height.
- * (xfig chooses them from the screen size at startup.)
+ * The mode panel has xfig's columns: two, or -but_per_row.  (X11 xfig
+ * adds columns when the screen is too low at startup; here the panel
+ * scrolls in a window too low for it.)
  */
 void
 MainWindow::fitModePanel()
@@ -526,9 +533,6 @@ MainWindow::fitModePanel()
 	if (!m_modePanel)
 		return;
 	Widget mp = m_modePanel->xt();
-	int avail = m_grid->geometry().height();
-	if (!isVisible() || avail < 200)	/* not laid out yet */
-		return;
 	/* the column width: the normal buttons (the library one is wider) */
 	int bw = INT_MAX;
 	for (int i = 0; i < xq_widget_num_children(mp); ++i) {
@@ -539,22 +543,25 @@ MainWindow::fitModePanel()
 	if (bw <= 0 || bw == INT_MAX)
 		return;
 	int hs = int(xq_res_default(mp, XtNhSpace, 4));
-	for (int cols = 2; cols <= 6; ++cols) {
-		int width = cols * (bw + hs) + hs;
-		XtVaSetValues(mp, "xqW", (XtArgVal)width, NULL);
-		/* the "Drawing" and "Editing" labels span the panel */
-		for (int i = 0; i < xq_widget_num_children(mp); ++i) {
-			Widget c = xq_widget_child(mp, i);
-			if (!strcmp(xq_widget_class(c), "Label"))
-				XtVaSetValues(c, "xqW", (XtArgVal)(width - 2 * hs), NULL);
-		}
-		m_modePanel->layoutChildren();
-		if (qEnvironmentVariableIsSet("XFIGQT_DEBUG"))
-			qDebug("mode panel: %d columns (button %d, hs %d), size %dx%d of %d", cols, bw, hs, xq_widget_width(mp),
-				xq_widget_height(mp), avail);
-		if (xq_widget_height(mp) <= avail)
-			break;
+	int cols = qBound(1, xqb_buttons_per_row(), 6);
+	int width = cols * (bw + hs) + hs;
+	XtVaSetValues(mp, "xqW", (XtArgVal)width, NULL);
+	/* the "Drawing" and "Editing" labels span the panel */
+	for (int i = 0; i < xq_widget_num_children(mp); ++i) {
+		Widget c = xq_widget_child(mp, i);
+		if (!strcmp(xq_widget_class(c), "Label"))
+			XtVaSetValues(c, "xqW", (XtArgVal)(width - 2 * hs), NULL);
 	}
+	m_modePanel->layoutChildren();
+	QSize size(xq_widget_width(mp), xq_widget_height(mp));
+	m_modePanel->resize(size);
+	bool scroll = size.height() > m_modeScroll->viewport()->height() &&
+			m_modeScroll->height() > 0 && size.height() > m_modeScroll->height();
+	m_modeScroll->setFixedWidth(size.width() + (scroll ?
+			m_modeScroll->verticalScrollBar()->sizeHint().width() : 0));
+	if (qEnvironmentVariableIsSet("XFIGQT_DEBUG"))
+		qDebug("mode panel: %d columns, %dx%d in %d", cols, size.width(),
+				size.height(), m_modeScroll->height());
 }
 
 void

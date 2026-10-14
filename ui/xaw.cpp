@@ -712,6 +712,8 @@ XawPeer::mousePressEvent(QMouseEvent *e)
 	if (m_kind == MenuButton && m_pressed == Button1 && !translated) {
 		/* pop up the menu named by menuName below the button */
 		const char *name = (const char *)res(m_w, XtNmenuName);
+		if (!name)	/* the MenuButton's default */
+			name = "menu";
 		Widget menu = nullptr;
 		for (Widget a = m_w; a && !menu && name; a = xq_widget_parent(a)) {
 			for (int i = 0; i < xq_widget_num_children(a); ++i)
@@ -1074,46 +1076,92 @@ XawShell::closeEvent(QCloseEvent *e)
 
 /* ----------------------------------------------------------- menus */
 
+/* the popup shell named name, a child of w or of one of its ancestors */
+static Widget
+find_popup(Widget w, const char *name)
+{
+	for (Widget a = w; a && name; a = xq_widget_parent(a))
+		for (int i = 0; i < xq_widget_num_children(a); ++i)
+			if (!strcmp(xq_widget_name(xq_widget_child(a, i)), name))
+				return xq_widget_child(a, i);
+	return nullptr;
+}
+
+/* xfig marks checked entries with a left bitmap that is not blank */
+static bool
+marked(Widget e)
+{
+	Pixmap lb = Pixmap(res(e, XtNleftBitmap));
+	QImage *img = lb ? xq_image(lb) : nullptr;
+	if (!img || img->isNull())
+		return false;
+	for (int y = 0; y < img->height(); ++y)
+		for (int x = 0; x < img->width(); ++x)
+			if ((img->pixel(x, y) & 0xffffff) != 0)
+				return true;
+	return false;
+}
+
+/*
+ * The entries of a SimpleMenu.  An entry with a menuName opens that menu
+ * as a submenu (the library menu: libraries in subdirectories); if the
+ * entry has a callback too, it is the submenu's first item.
+ */
+static void
+fill_menu(QMenu *qm, Widget menu)
+{
+	qm->setFont(ui_font());
+	for (int i = 0; i < xq_widget_num_children(menu); ++i) {
+		Widget e = xq_widget_child(menu, i);
+		if (!XtIsManaged(e) || !strcmp(xq_widget_class(e), "SimpleMenu"))
+			continue;
+		if (is(e, "SmeLine")) {
+			qm->addSeparator();
+			continue;
+		}
+		QString label = qstr(xq_widget_label(e)).trimmed();
+		Widget sub = find_popup(menu, (const char *)res(e, XtNmenuName));
+		if (sub) {
+			QMenu *qsub = qm->addMenu(label);
+			qsub->setEnabled(XtIsSensitive(e));
+			if (xq_has_callbacks(e, XtNcallback)) {
+				QAction *a = qsub->addAction(label);
+				a->setData(QVariant::fromValue((void *)e));
+				qsub->addSeparator();
+			}
+			fill_menu(qsub, sub);
+			continue;
+		}
+		QAction *a = qm->addAction(label);
+		a->setEnabled(XtIsSensitive(e));
+		if (marked(e)) {
+			a->setCheckable(true);
+			a->setChecked(true);
+		}
+		a->setData(QVariant::fromValue((void *)e));
+	}
+}
+
+/* test scripts choose the entry of the next menu (ui/testscript.cpp) */
+std::function<QAction *(QMenu *)> xaw_menu_chooser;
+
 static void
 popup_simple_menu(Widget menu)
 {
 	QMenu qm;
-	qm.setFont(ui_font());
-	for (int i = 0; i < xq_widget_num_children(menu); ++i) {
-		Widget e = xq_widget_child(menu, i);
-		if (!XtIsManaged(e))
-			continue;
-		if (is(e, "SmeLine")) {
-			qm.addSeparator();
-			continue;
-		}
-		QString label = qstr(xq_widget_label(e));
-		QAction *a = qm.addAction(label);
-		a->setEnabled(XtIsSensitive(e));
-		Pixmap lb = Pixmap(res(e, XtNleftBitmap));
-		if (lb && xq_image(lb) && !xq_image(lb)->isNull()) {
-			/* xfig marks checked entries with a left bitmap */
-			QImage *img = xq_image(lb);
-			bool blank = true;
-			for (int y = 0; y < img->height() && blank; ++y)
-				for (int x = 0; x < img->width(); ++x)
-					if ((img->pixel(x, y) & 0xffffff) != 0) {
-						blank = false;
-						break;
-					}
-			if (!blank) {
-				a->setCheckable(true);
-				a->setChecked(true);
-			}
-		}
-		a->setData(QVariant::fromValue((void *)e));
-	}
+	fill_menu(&qm, menu);
 	QPoint at(xq_widget_x(menu), xq_widget_y(menu));
 	if (at.isNull())
 		at = QCursor::pos();
-	QAction *chosen = qm.exec(at);
+	QAction *chosen;
+	if (xaw_menu_chooser) {
+		chosen = xaw_menu_chooser(&qm);
+		xaw_menu_chooser = nullptr;
+	} else {
+		chosen = qm.exec(at);
+	}
 	XtPopdown(menu);
-	if (chosen) {
+	if (chosen && chosen->data().value<void *>()) {
 		Widget e = (Widget)chosen->data().value<void *>();
 		xq_call_callbacks(e, XtNcallback, nullptr);
 	}
@@ -1870,4 +1918,19 @@ XawPeer::installHooks()
 		if (XawPeer *p = XawPeer::forWindow(w))
 			p->setCursor(xq_qcursor(c));
 	});
+}
+
+/* xfig raises one of two stacked forms (the library's icon and list
+   views), or a dialog that is up already */
+extern "C" int
+XRaiseWindow(Display *d, Window win)
+{
+	(void)d;
+	XawPeer *p = XawPeer::forWindow(win);
+	if (!p)
+		return 1;
+	p->raise();
+	if (p->isWindow())
+		p->activateWindow();
+	return 1;
 }

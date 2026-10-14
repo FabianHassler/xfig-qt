@@ -145,7 +145,6 @@ XInternAtom(Display *d, const char *n, Bool b)
 		h = h * 33 + (unsigned char)*n++;
 	return (Atom)(h | 0x10000);
 }
-int XRaiseWindow(Display *d, Window w) { (void)d; (void)w; return 1; }
 int XUngrabPointer(Display *d, Time t) { (void)d; (void)t; return 1; }
 int XGrabPointer(Display *d, Window w, Bool b, unsigned int m, int p, int k, Window c, Cursor u, Time t)
 { (void)d; (void)w; (void)b; (void)m; (void)p; (void)k; (void)c; (void)u; (void)t; return GrabSuccess; }

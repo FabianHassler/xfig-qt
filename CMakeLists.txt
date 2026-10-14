@@ -56,6 +56,9 @@ set_source_files_properties(core/w_export.c PROPERTIES
 	COMPILE_DEFINITIONS print_export=xq_print_export)
 set_source_files_properties(core/f_readeps.c PROPERTIES
 	COMPILE_DEFINITIONS gs_bitmap=xq_gs_bitmap)
+# the picture's Browse... opens the file dialog (ui/bridge.c)
+set_source_files_properties(core/e_edit.c PROPERTIES
+	COMPILE_DEFINITIONS popup_browse_panel=xq_popup_browse_panel)
 # xfig's main() becomes xfig_main(), called by the Qt main()
 set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE

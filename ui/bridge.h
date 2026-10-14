@@ -30,6 +30,8 @@ int	xqb_print_to_file(const char *file);
 struct xq_svg_job;
 int	xqb_print_svg(char *svg, struct xq_svg_job *job);
 int	xqb_have_ghostscript(void);
+int	xqb_buttons_per_row(void);
+void	xqb_set_native_browse(char *(*browse)(const char *dir, const char *current));
 int	xqb_num_export_langs(void);
 const char *xqb_export_lang_text(int lang);
 const char *xqb_export_suffix(int lang);

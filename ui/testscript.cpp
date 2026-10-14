@@ -32,6 +32,9 @@
 #include "bridge.h"
 #include "print.h"
 
+/* ui/xaw.cpp: chooses the entry of the next popup menu */
+extern std::function<QAction *(QMenu *)> xaw_menu_chooser;
+
 extern "C" const char *xq_data_path(const char *sub);
 
 static QWidget *
@@ -142,10 +145,39 @@ run(QStringList lines)
 			for (Widget root : xqb_root_widgets())
 				if ((w = find_widget(root, n.constData(), index)))
 					break;
-			if (XawPeer *p = XawPeer::of(w))
-				click(p, QPointF(p->width() / 2, p->height() / 2), 1);
-			else
+			if (XawPeer *p = XawPeer::of(w)) {
+				QPointF c(p->width() / 2, p->height() / 2);
+				click(p, c, 1);
+				if (a.value(3) == "double") {
+					mouse(p, QEvent::MouseButtonDblClick, c, Qt::LeftButton, Qt::LeftButton);
+					mouse(p, QEvent::MouseButtonRelease, c, Qt::LeftButton, Qt::NoButton);
+				}
+			} else {
 				qWarning("no widget %s", n.constData());
+			}
+		} else if (cmd == "choose") {
+			/* the next popup menu's entry: path of entries, by "/" */
+			QStringList path = line.section(' ', 1).split('/');
+			xaw_menu_chooser = [path](QMenu *m) -> QAction * {
+				QAction *hit = nullptr;
+				for (const QString &p : path) {
+					hit = nullptr;
+					for (QAction *a : m ? m->actions() : QList<QAction *>())
+						if (!a->isSeparator() && a->text().trimmed() == p.trimmed()) {
+							hit = a;
+							break;
+						}
+					if (!hit) {
+						qWarning("no popup menu entry %s", qPrintable(p));
+						return nullptr;
+					}
+					m = hit->menu();
+				}
+				/* a submenu: its own entry (xfig's callback on it) */
+				if (m && !m->actions().isEmpty())
+					hit = m->actions().first();
+				return hit;
+			};
 		} else if (cmd == "menu") {
 			QString m = a.value(1), entry = line.section(' ', 2);
 			bool found = false;

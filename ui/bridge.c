@@ -37,6 +37,8 @@
 #include "xq_widget.h"
 #include "paintop.h"
 #include "svgout.h"
+#include "e_edit.h"
+#include "f_picobj.h"
 
 extern Widget	tool, canvas_sw, topruler_sw, sideruler_sw, msg_panel, mousefun,
 		unitbox_sw, layer_canvas;
@@ -750,4 +752,55 @@ xq_gs_bitmap(char *file, F_pic *pic, int llx, int lly, int urx, int ury)
 	if (pic->pic_cache->numcols != -1 && !map_to_palette(pic))
 		return -1;
 	return 0;
+}
+
+/* the mode panel's columns: -but_per_row, else xfig's default */
+int
+xqb_buttons_per_row(void)
+{
+	return appres.but_per_row > 0 ? appres.but_per_row : DEF_SW_PER_ROW;
+}
+
+/* ------------------------------------------- the picture's Browse button */
+
+/*
+ * The picture edit dialog's Browse... opens the system's file dialog; the
+ * chosen file becomes the picture's file, as with xfig's browse panel.
+ */
+extern void	popup_browse_panel(Widget w);
+static char	*(*native_browse)(const char *dir, const char *current);
+
+void
+xqb_set_native_browse(char *(*browse)(const char *dir, const char *current))
+{
+	native_browse = browse;
+}
+
+void
+xq_popup_browse_panel(Widget w)
+{
+	char	*file, *abs_path, *cur;
+	char	path_buf[PATH_MAX];
+	char	*path = path_buf;
+
+	if (!native_browse) {
+		popup_browse_panel(w);
+		return;
+	}
+	cur = internal_path(panel_get_value(pic_name_panel));
+	file = native_browse(cur_file_dir, cur ? cur : "");
+	free(cur);
+	if (!file)
+		return;
+	abs_path = realpath(file, NULL);
+	free(file);
+	if (!abs_path)
+		return;
+	if (external_path(&path, sizeof path_buf, abs_path) >= 0)
+		panel_set_value(pic_name_panel, path);
+	free(abs_path);
+	if (path != path_buf)
+		free(path);
+	/* reads the picture and shows it in the dialog */
+	push_apply_button();
 }

@@ -119,6 +119,20 @@ main(int argc, char **argv)
 	xq_set_resource("library_dir", xq_data_path("Libraries"));
 	/* the print panel's Print button opens the print dialog */
 	xqb_set_native_print([] { print_figure(MainWindow::instance()); });
+	/* the picture's Browse... opens the file dialog (malloc'ed result) */
+	xqb_set_native_browse([](const char *dir, const char *current) -> char * {
+		/* test scripts: XFIGQT_TEST_BROWSE answers the dialog */
+		if (qEnvironmentVariableIsSet("XFIGQT_TEST_BROWSE"))
+			return strdup(qgetenv("XFIGQT_TEST_BROWSE").constData());
+		QString start = *current ? QFile::decodeName(current) :
+				QFile::decodeName(dir);
+		QString f = QFileDialog::getOpenFileName(QApplication::activeWindow(),
+				"Picture File", start,
+				"Pictures (*.eps *.ps *.pdf *.gif *.jpg *.jpeg *.png *.pcx "
+				"*.ppm *.pgm *.pbm *.pnm *.tif *.tiff *.xbm *.xpm "
+				"*.gz *.Z *.bz2 *.xz);;All Files (*)");
+		return f.isEmpty() ? nullptr : strdup(QFile::encodeName(f).constData());
+	});
 	/* EPS and PDF pictures: an app started from the Finder has no
 	   Homebrew in its PATH */
 	/* without Ghostscript, none: PDF and bitmaps are then made from SVG */

@@ -49,6 +49,7 @@ private:
 	bool		m_rulersSetUp = false;
 	Widget		m_mouseWidget = nullptr;
 	XawPeer		*m_modePanel = nullptr;
+	QScrollArea	*m_modeScroll = nullptr;
 	QLabel		*m_message;
 	Widget		m_msgWidget = nullptr;
 	QList<QMenu *>	m_menus;
