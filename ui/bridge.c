@@ -3,6 +3,10 @@
  */
 #include "bridge.h"
 
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "resources.h"
 #include "object.h"
 #include "mode.h"
@@ -21,6 +25,7 @@
 #include "f_util.h"
 #include "f_save.h"
 #include "w_cmdpanel.h"
+#include "e_compound.h"
 #include "paintop.h"
 
 extern Widget	tool, canvas_sw, topruler_sw, sideruler_sw, msg_panel, mousefun,
@@ -93,6 +98,119 @@ int
 xqb_save_file(const char *path)
 {
 	return write_file((char *)path, True);
+}
+
+/* ---------------------------------------- the native file dialogs */
+
+/* What xfig's file panel does once a file is chosen (do_load, do_merge,
+   do_save in w_file.c), for a path from the macOS file dialog.  The file
+   panel's preview, which these skip, is what its color saving is for. */
+
+/* split an absolute path; dir and name are PATH_MAX buffers */
+static int
+split_path(const char *path, char *dir, char *name)
+{
+	const char *slash = strrchr(path, '/');
+	if (!slash || strlen(path) >= PATH_MAX)
+		return -1;
+	if (slash == path) {
+		strcpy(dir, "/");
+	} else {
+		memcpy(dir, path, slash - path);
+		dir[slash - path] = '\0';
+	}
+	strcpy(name, slash + 1);
+	return 0;
+}
+
+/* in the middle of drawing or editing: xfig says so in the message panel */
+int
+xqb_busy(void)
+{
+	return check_action_on();
+}
+
+int
+xqb_needs_saving(void)
+{
+	return !emptyfigure() && figure_modified;
+}
+
+int
+xqb_open(const char *path)
+{
+	char	dir[PATH_MAX], name[PATH_MAX];
+
+	if (check_action_on() || split_path(path, dir, name))
+		return -1;
+	restore_user_colors();
+	restore_nuser_colors();
+	if (change_directory(dir))
+		return -1;
+	strcpy(cur_file_dir, dir);
+	strcpy(cur_export_dir, dir);
+	return load_file(name, 0, 0);
+}
+
+int
+xqb_merge(const char *path)
+{
+	if (check_action_on())
+		return -1;
+	merge_file((char *)path, 0, 0);
+	return 0;
+}
+
+int
+xqb_save_as(const char *path)
+{
+	char	dir[PATH_MAX], name[PATH_MAX];
+
+	if (check_action_on() || emptyfigure_msg("Save") ||
+			split_path(path, dir, name))
+		return -1;
+	restore_user_colors();
+	restore_nuser_colors();
+	/* inside an opened compound: save all of the figure or this part */
+	if ((F_compound *)objects.parent != NULL) {
+		int r = popup_query(QUERY_ALLPARTCAN, "You have opened a "
+			"compound. You may save just\nthe visible part or all "
+			"of the figure.");
+		if (r == RESULT_CANCEL)
+			return -1;
+		if (r == RESULT_ALL)
+			close_all_compounds();
+	}
+	if (change_directory(dir))
+		return -1;
+	/* image paths in the file are written relative to cur_file_dir */
+	strcpy(cur_file_dir, dir);
+	/* the dialog asked before replacing a file */
+	warnexist = False;
+	if (!ok_to_write(name, "SAVE"))
+		return -1;
+	if (appres.write_bak == True)
+		(void)renamefile(name);
+	if (write_file(name, True) != 0)
+		return -1;
+	update_cur_filename(name);
+	reset_modifiedflag();
+	return 0;
+}
+
+/* the current figure's absolute path, "" if it has no name yet */
+const char *
+xqb_current_path(void)
+{
+	static char	path[2 * PATH_MAX];
+
+	if (emptyname(cur_filename))
+		path[0] = '\0';
+	else if (cur_filename[0] == '/')
+		strcpy(path, cur_filename);
+	else
+		snprintf(path, sizeof path, "%s/%s", cur_file_dir, cur_filename);
+	return path;
 }
 
 const char *

@@ -149,10 +149,129 @@ MainWindow::fillMenu(QMenu *qm, int index)
 			a->setMenuRole(QAction::PreferencesRole);
 		else
 			a->setMenuRole(QAction::NoRole);
+		/* the macOS file dialog instead of xfig's file panel */
+		if (text == "Open...") {
+			connect(a, &QAction::triggered, this, &MainWindow::openFile);
+			continue;
+		}
+		if (text == "Merge...") {
+			connect(a, &QAction::triggered, this, &MainWindow::mergeFile);
+			continue;
+		}
+		if (text == "Save As...") {
+			connect(a, &QAction::triggered, this, &MainWindow::saveFileAs);
+			continue;
+		}
+		if (text == "Save") {
+			/* a figure without a name needs the save dialog */
+			connect(a, &QAction::triggered, this, [this, e] {
+				if (*xqb_current_path())
+					xq_call_callbacks(e, XtNcallback, nullptr);
+				else
+					saveFileAs();
+			});
+			continue;
+		}
 		connect(a, &QAction::triggered, this, [e] {
 			xq_call_callbacks(e, XtNcallback, nullptr);
 		});
 	}
+}
+
+/* ------------------------------------------------------------ file dialogs */
+
+static const char *fig_filter = "Fig files (*.fig);;All files (*)";
+
+QString
+MainWindow::fileDialogDir() const
+{
+	QString path = QString::fromLocal8Bit(xqb_current_path());
+	if (!path.isEmpty())
+		return path;
+	return QString::fromLocal8Bit(xqb_current_dir());
+}
+
+/* before the figure is replaced: Save, Don't Save or Cancel */
+bool
+MainWindow::maybeSave()
+{
+	if (!xqb_needs_saving())
+		return true;
+	QString name = QFileInfo(QString::fromLocal8Bit(xqb_current_path())).fileName();
+	QMessageBox box(QMessageBox::Warning, "Xfig",
+		name.isEmpty() ? QString("Do you want to save the changes to this figure?")
+			: QString("Do you want to save the changes to \"%1\"?").arg(name),
+		QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
+	box.setInformativeText("Your changes will be lost if you don't save them.");
+	box.setDefaultButton(QMessageBox::Save);
+	switch (box.exec()) {
+	case QMessageBox::Save:
+		if (*xqb_current_path())
+			return saveAsPath(QString::fromLocal8Bit(xqb_current_path()));
+		return saveFileAs();
+	case QMessageBox::Discard:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void
+MainWindow::openFile()
+{
+	if (xqb_busy() || !maybeSave())
+		return;
+	QString path = QFileDialog::getOpenFileName(this, "Open",
+			fileDialogDir(), fig_filter);
+	if (!path.isEmpty())
+		openPath(path);
+}
+
+void
+MainWindow::mergeFile()
+{
+	if (xqb_busy())
+		return;
+	QString path = QFileDialog::getOpenFileName(this, "Merge",
+			fileDialogDir(), fig_filter);
+	if (!path.isEmpty())
+		mergePath(path);
+}
+
+bool
+MainWindow::saveFileAs()
+{
+	if (xqb_busy())
+		return false;
+	QString start = fileDialogDir();
+	if (QFileInfo(start).isDir())
+		start += "/untitled.fig";
+	QString path = QFileDialog::getSaveFileName(this, "Save As", start,
+			fig_filter);
+	if (path.isEmpty())
+		return false;
+	return saveAsPath(path);
+}
+
+bool
+MainWindow::openPath(const QString &path)
+{
+	return xqb_open(QFileInfo(path).absoluteFilePath().toLocal8Bit()) == 0;
+}
+
+bool
+MainWindow::mergePath(const QString &path)
+{
+	return xqb_merge(QFileInfo(path).absoluteFilePath().toLocal8Bit()) == 0;
+}
+
+bool
+MainWindow::saveAsPath(const QString &path)
+{
+	QString p = QFileInfo(path).absoluteFilePath();
+	if (QFileInfo(p).suffix().isEmpty())
+		p += ".fig";
+	return xqb_save_as(p.toLocal8Bit()) == 0;
 }
 
 /* ----------------------------------------------------------------- panels */

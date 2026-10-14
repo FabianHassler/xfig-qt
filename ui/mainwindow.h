@@ -17,6 +17,11 @@ public:
 	void	widgetCreated(Widget w, const char *name, const char *wclass);
 	void	widgetSetValues(Widget w, ArgList args, Cardinal n);
 
+	/* File menu, after the file dialog (also used by test scripts) */
+	bool	openPath(const QString &path);
+	bool	mergePath(const QString &path);
+	bool	saveAsPath(const QString &path);
+
 protected:
 	void	closeEvent(QCloseEvent *e) override;
 	void	resizeEvent(QResizeEvent *e) override;
@@ -26,6 +31,11 @@ private:
 	void	fillMenu(QMenu *qm, int index);
 	void	adopt(XawPeer *p, QWidget *area);
 	void	fitModePanel();
+	void	openFile();
+	void	mergeFile();
+	bool	saveFileAs();
+	bool	maybeSave();
+	QString	fileDialogDir() const;
 
 	static MainWindow *s_instance;
 	QGridLayout	*m_grid;

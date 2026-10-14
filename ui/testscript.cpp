@@ -14,6 +14,7 @@
  *	snapcanvas <file.png>		save the drawing canvas only
  *	snapwin <file.png>		save the topmost other window (dialog)
  *	save <file.fig>
+ *	open|merge|saveas <file.fig>	File menu, as after the file dialog
  *	quit
  */
 #include "mainwindow.h"
@@ -190,6 +191,12 @@ run(QStringList lines)
 			}
 		} else if (cmd == "save") {
 			xqb_save_file(a.value(1).toLocal8Bit().constData());
+		} else if (cmd == "open") {
+			MainWindow::instance()->openPath(a.value(1));
+		} else if (cmd == "merge") {
+			MainWindow::instance()->mergePath(a.value(1));
+		} else if (cmd == "saveas") {
+			MainWindow::instance()->saveAsPath(a.value(1));
 		} else if (cmd == "close") {
 			/* like the window's close button */
 			QTimer::singleShot(0, [] { MainWindow::instance()->close(); });

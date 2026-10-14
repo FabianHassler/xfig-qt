@@ -95,6 +95,10 @@ Verified with test scripts:
 - box, circle, polyline and text drawn interactively and saved to a correct
   `.fig` file;
 - native menus; mode panel; indicator panel, which switches with the mode;
+- File → Open…, Merge… and Save As… use the macOS file dialog, and Save
+  for a figure without a name too. Before a figure is replaced, a macOS
+  alert offers Save, Don't Save or Cancel. xfig's file panel (with its
+  figure preview) is still there through xfig's keyboard accelerators;
 - object edit dialog; export dialog;
 - all 2561 figures in `old/` compared with X11 xfig (`tests/compare`):
   2556 render the same. The rest are small: dashes along arcs (X draws
@@ -107,9 +111,8 @@ Known gaps (next steps):
 - xfig's layouts use fixed pixel sizes made for X11 fonts. Labels and
   buttons grow to fit their text, but some dialogs may still look cramped;
 - no input method support for composed non-ASCII text input yet;
-- native file dialogs: File → Open…, Merge…, Save As… and the Export file
-  name through the macOS dialog (`QFileDialog`) instead of xfig's Xaw file
-  browser, which loses its figure preview;
+- the Export panel's file name through the macOS save dialog (File →
+  Open…, Merge…, Save As… already use the macOS file dialog);
 - native printing: fig2dev makes a PDF, the macOS print dialog
   (`QPrintDialog`) chooses printer, copies and pages, and the PDF goes to
   the printer through CUPS, so it stays vector. Today xfig pipes to `lp` or
