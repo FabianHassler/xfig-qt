@@ -51,6 +51,10 @@ target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE
 if(APPLE)
 	# iconv is part of the C library on Linux, separate on macOS
 	target_link_libraries(xfigcore PUBLIC iconv)
+	# rewind() that drops stdio's buffer, as on Linux (shim/rewind.c)
+	target_sources(xfigcore PRIVATE shim/rewind.c)
+	set_source_files_properties(core/f_picobj.c PROPERTIES
+		COMPILE_DEFINITIONS "rewind=xq_rewind")
 endif()
 
 # ------------------------------------------------------------- application
