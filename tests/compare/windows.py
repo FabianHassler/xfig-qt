@@ -47,7 +47,7 @@ def menu(name, menu, y, entry):
 # mode buttons in the X11 xfig's mode panel (window coordinates), and the
 # mode numbers of mode.h for xfig-qt
 MODES = {"box": ((18, 226), 7), "text": ((56, 290), 9),
-	 "polyline": ((56, 190), 5)}
+	 "polyline": ((56, 190), 6)}
 # the indicators' x in the X11 xfig, in the order shown, per mode
 INDICATORS = {
 	"box": ["zoom", "grid", "point_posn", "depth", "pen_color",
@@ -56,9 +56,15 @@ INDICATORS = {
 	"text": ["zoom", "grid", "point_posn", "depth", "pen_color",
 		 "text_just", "angle", "text_flags", "text_size", "text_step",
 		 "text_font"],
+	"polyline": ["zoom", "grid", "point_posn", "depth", "angle_geom",
+		     "pen_color", "fill_color", "fill_style", "line_width",
+		     "line_style", "join_style", "cap_style", "arrow_mode",
+		     "arrow_type", "arrow_size", "dimension_line"],
 }
 IND_X = {"box": [30, 93, 158, 220, 295, 387, 467, 532, 598, 664, 730],
-	 "text": [30, 93, 158, 220, 295, 373, 453, 537, 615, 683, 867]}
+	 "text": [30, 93, 158, 220, 295, 373, 453, 537, 615, 683, 867],
+	 "polyline": [30, 93, 158, 220, 283, 362, 455, 532, 597, 663, 731,
+		      797, 861, 927, 998, 1080]}
 IND_Y = 813
 
 
@@ -100,11 +106,13 @@ ITEMS = [
 	menu("character_map", "View", 163, "Character map"),
 	menu("about", "Help", 99, "About"),
 	edit("box", 100, 150), edit("ellipse", 475, 150),
-	edit("polyline", 200, 300), edit("arc", 375, 375),
+	edit("polyline", 200, 300), edit("arc", 450, 300),
 	edit("spline", 100, 400), edit("text", 550, 412),
 	edit("picture", 80, 200, FIG),
+	("library", "Library mode", [("click", OFFX + 37, 322)], ["mode 17"], FIG),
 ] + [indicator("box", k) for k in range(len(INDICATORS["box"]))] + [
-	indicator("text", k) for k in range(5, len(INDICATORS["text"]))]
+	indicator("text", k) for k in range(5, len(INDICATORS["text"]))] + [
+	indicator("polyline", k) for k in (4, 12, 13, 14, 15)]
 
 
 def run(cmd, env=None, timeout=60):
@@ -173,7 +181,7 @@ def qt_dialog(steps, fig, png):
 	with tempfile.TemporaryDirectory() as tmp:
 		script = Path(tmp) / "s.txt"
 		script.write_text(f"open {fig}\nwait 300\n" + "\n".join(steps) +
-				f"\nwait 500\nsnapwin {png}\nquit\n")
+				f"\nwait 1000\nsnapwin {png}\nquit\n")
 		env = dict(os.environ, QT_QPA_PLATFORM="offscreen",
 				XFIGQT_SCRIPT=str(script))
 		run([QT_XFIG], env=env)
