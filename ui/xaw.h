@@ -48,6 +48,7 @@ public:
 	/* the host (main window) sets the geometry, not the Xaw layout */
 	void	setHostManaged(bool h) { m_host = h; }
 	bool	hostManaged() const { return m_host; }
+	QSize	contentSize() const { return contentRect().size(); }
 
 	/* placed by the host: the Xaw parent does not lay it out */
 	void	setAdopted(bool a) { m_adopted = a; }

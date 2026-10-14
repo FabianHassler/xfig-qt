@@ -14,6 +14,7 @@ extern "C" {
 int	xfig_main(int argc, char **argv);
 
 void	xqb_canvas_resized(int width, int height);
+void	xqb_canvas_sync(int width, int height);
 void	xqb_rulers_resized(int topruler_wd, int sideruler_ht);
 void	xqb_redraw(void);
 int	xqb_load_file(const char *path);

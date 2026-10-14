@@ -2,6 +2,7 @@
  * xaw.cpp - Qt peers for xfig's Xaw widgets.
  */
 #include "xaw.h"
+#include "bridge.h"
 
 static QHash<Window, XawPeer *> by_window;
 static QSet<XawPeer *> toggles;
@@ -1594,8 +1595,17 @@ static void
 hook_geometry(Widget w)
 {
 	XawPeer *p = XawPeer::of(w);
-	if (!p || p->hostManaged())
+	if (!p || p->hostManaged()) {
+		/* the main window lays these out; xfig may still have
+		   changed its canvas size (resize_all) */
+		QTimer::singleShot(0, [] {
+			if (XawPeer *c = XawPeer::of(xqb_canvas_widget())) {
+				QSize s = c->contentSize();
+				xqb_canvas_sync(s.width(), s.height());
+			}
+		});
 		return;
+	}
 	XtVaSetValues(w, "xqW", (XtArgVal)xq_widget_width(w), "xqH",
 			(XtArgVal)xq_widget_height(w), NULL);
 	XawPeer *pp = XawPeer::of(xq_widget_parent(w));

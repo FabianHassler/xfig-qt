@@ -55,6 +55,17 @@ xqb_canvas_resized(int width, int height)
 	redisplay_canvas();
 }
 
+/* xfig resizes its own windows at times (resize_all() when a file changes
+   the orientation) and sets CANVAS_WD/HT to the size it asked for.  Qt
+   lays out the main window, so the canvas keeps its size: put xfig's idea
+   of it back, or it redraws only part of the canvas. */
+void
+xqb_canvas_sync(int width, int height)
+{
+	if (width != CANVAS_WD || height != CANVAS_HT)
+		xqb_canvas_resized(width, height);
+}
+
 void
 xqb_rulers_resized(int topruler_wd, int sideruler_ht)
 {
