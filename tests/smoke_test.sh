@@ -50,7 +50,8 @@ check() {
 		fail=1
 	fi
 }
-check "$(grep 'datadir .*data' "$out/log.txt")" "data directory found"
+datadir=$(sed -n 's/^datadir //p' "$out/log.txt" | head -n 1)
+check "$(test -n "$datadir" && test -d "$datadir/Libraries" && echo y)" "data directory found"
 check "$(test -s "$out/canvas.png" && echo y)" "canvas snapshot written"
 check "$(head -c 4 "$out/saved.fig" 2>/dev/null | grep '#FIG')" "figure saved"
 check "$(grep -c '^4 ' "$out/saved.fig" 2>/dev/null | grep -v '^0$')" "saved figure has its text objects"
