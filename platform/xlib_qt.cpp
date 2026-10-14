@@ -153,6 +153,17 @@ bitmap_image(const char *data, unsigned w, unsigned h, QRgb on, QRgb off)
 	return img;
 }
 
+/* A depth-1 pixmap as a QBitmap: set bits (any non-black pixel) become
+   color1.  QBitmap::fromImage() maps by color, and the mask from
+   createMaskFromColor() has white at index 1, so mask the unset (black)
+   pixels in: they become white, i.e. color0. */
+static QBitmap
+bitmap_of(const QImage &img)
+{
+	return QBitmap::fromImage(img.createMaskFromColor(0xff000000u,
+				Qt::MaskInColor));
+}
+
 static inline QRgb
 pix2rgb(unsigned long p)
 {
@@ -268,11 +279,7 @@ change_gc(GC gc, unsigned long mask, const XGCValues *v)
 		if (v->clip_mask != None) {
 			DrawableRec *r = lookup(v->clip_mask);
 			if (r) {
-				QImage m = r->img;
-				QBitmap bm = QBitmap::fromImage(
-					m.createMaskFromColor(0xff000000u,
-						Qt::MaskOutColor));
-				gc->clip = QRegion(bm);
+				gc->clip = QRegion(bitmap_of(r->img));
 				gc->has_clip = true;
 			}
 		}
@@ -465,10 +472,7 @@ fill_brush(GC gc)
 			&& g.stipple != None) {
 		DrawableRec *r = lookup(g.stipple);
 		if (r) {
-			QBitmap bm = QBitmap::fromImage(r->img.createMaskFromColor(
-					0xff000000u, Qt::MaskOutColor));
-			QBrush b(fg, bm);
-			return b;
+			return QBrush(fg, bitmap_of(r->img));
 		}
 	}
 	if (g.fill_style == FillTiled && g.tile != None) {
