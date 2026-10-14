@@ -30,6 +30,8 @@
 #include "w_cmdpanel.h"
 #include "e_compound.h"
 #include "u_print.h"
+#include "w_export.h"
+#include "xq_widget.h"
 #include "paintop.h"
 
 extern Widget	tool, canvas_sw, topruler_sw, sideruler_sw, msg_panel, mousefun,
@@ -206,6 +208,92 @@ xqb_save_as(const char *path)
 		return -1;
 	update_cur_filename(name);
 	reset_modifiedflag();
+	return 0;
+}
+
+/* ------------------------------------------------ the native export dialog */
+
+/* xfig's export languages: lang_items[] (fig2dev's names), lang_texts[] */
+int
+xqb_num_export_langs(void)
+{
+	return NUM_EXP_LANG;
+}
+
+const char *
+xqb_export_lang_text(int lang)
+{
+	return lang_texts[lang];
+}
+
+/* the file name suffix, as in update_def_filename() */
+const char *
+xqb_export_suffix(int lang)
+{
+	switch (lang) {
+	case LANG_TIFF:		return "tif";
+	case LANG_JPEG:		return "jpg";
+	case LANG_PDFTEX:	return "pdf";
+	case LANG_PSPDF:	return "eps";
+	default:		return lang_items[lang];
+	}
+}
+
+int
+xqb_export_lang(void)
+{
+	return cur_exp_lang;
+}
+
+static Widget
+find_named(Widget w, const char *name)
+{
+	if (!w)
+		return NULL;
+	if (!strcmp(xq_widget_name(w), name))
+		return w;
+	for (int i = 0; i < xq_widget_num_children(w); ++i) {
+		Widget f = find_named(xq_widget_child(w, i), name);
+		if (f)
+			return f;
+	}
+	return NULL;
+}
+
+/*
+ * What the export panel's Export button does, for the language and the
+ * path chosen in the file dialog: xfig's export panel keeps its other
+ * settings (magnification, margin, background, grid...).
+ */
+int
+xqb_export(const char *path, int lang)
+{
+	char	dir[PATH_MAX], name[PATH_MAX];
+
+	if (lang < 0 || lang >= NUM_EXP_LANG || check_action_on() ||
+			split_path(path, dir, name))
+		return -1;
+	/* the panel holds the export settings: make it, if not yet there
+	   (making it also sets the default export name, set below) */
+	if (!export_popup) {
+		popup_export_panel(tool);
+		XtPopdown(export_popup);
+	}
+	/* choose the language in the panel's menu, which also updates the
+	   panel (lang_select() in w_export.c) */
+	Widget entry = find_named(export_popup, lang_texts[lang]);
+	if (entry)
+		xq_call_callbacks(entry, XtNcallback, NULL);
+	else
+		cur_exp_lang = lang;
+	/* do_export() takes a name typed in the panel first */
+	if (exp_selfile)
+		XtVaSetValues(exp_selfile, XtNstring, "", NULL);
+	if (change_directory(dir))
+		return -1;
+	strcpy(cur_export_dir, dir);
+	strcpy(default_export_file, name);
+	do_export(tool);
 	return 0;
 }
 

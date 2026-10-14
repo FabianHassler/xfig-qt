@@ -163,6 +163,18 @@ MainWindow::fillMenu(QMenu *qm, int index)
 			connect(a, &QAction::triggered, this, &MainWindow::saveFileAs);
 			continue;
 		}
+		if (text == "Export...") {
+			/* the save dialog with xfig's formats; xfig's export
+			   panel keeps its options (magnification, margin...) */
+			connect(a, &QAction::triggered, this, &MainWindow::exportFile);
+			QAction *o = qm->addAction("Export Options...");
+			o->setEnabled(XtIsSensitive(e));
+			o->setMenuRole(QAction::NoRole);
+			connect(o, &QAction::triggered, this, [e] {
+				xq_call_callbacks(e, XtNcallback, nullptr);
+			});
+			continue;
+		}
 		if (text == "Print...") {
 			/* the macOS print dialog; xfig's print panel keeps
 			   its options (magnification, layers, grid...) */
@@ -291,6 +303,39 @@ MainWindow::saveFileAs()
 	if (path.isEmpty())
 		return false;
 	return saveAsPath(path);
+}
+
+/* File > Export...: the formats are xfig's export languages */
+void
+MainWindow::exportFile()
+{
+	if (xqb_busy())
+		return;
+	QStringList filters;
+	for (int i = 0; i < xqb_num_export_langs(); ++i)
+		filters << QString("%1 (*.%2)").arg(
+				QString::fromLatin1(xqb_export_lang_text(i)).simplified(),
+				QString::fromLatin1(xqb_export_suffix(i)));
+	int lang = xqb_export_lang();
+	QFileInfo fig(QString::fromLocal8Bit(xqb_current_path()));
+	QString dir = fig.fileName().isEmpty() ? fileDialogDir() : fig.absolutePath();
+	QString base = fig.fileName().isEmpty() ? QString("Untitled") : fig.completeBaseName();
+	QString selected = filters[lang];
+	QString path = QFileDialog::getSaveFileName(this, "Export",
+			dir + "/" + base + "." + xqb_export_suffix(lang),
+			filters.join(";;"), &selected);
+	if (path.isEmpty())
+		return;
+	exportPath(path, qMax(0, filters.indexOf(selected)));
+}
+
+bool
+MainWindow::exportPath(const QString &path, int lang)
+{
+	QString p = QFileInfo(path).absoluteFilePath();
+	if (QFileInfo(p).suffix().isEmpty())
+		p += QString(".") + xqb_export_suffix(lang);
+	return xqb_export(p.toLocal8Bit(), lang) == 0;
 }
 
 bool

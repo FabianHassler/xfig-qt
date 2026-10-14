@@ -31,6 +31,7 @@ add_library(xfigcore STATIC
 	shim/xt_widget.c
 	shim/xt_translate.c
 	shim/xpm.c
+	shim/spawn_env.c
 	shim/fallback.c)
 target_include_directories(xfigcore PUBLIC core shim)
 # USE_XPM: XPM pictures, export and the color splash, with shim/xpm.c
@@ -44,6 +45,9 @@ target_compile_options(xfigcore PRIVATE -w)
 # xfig ends with exit() from deep inside callbacks; xq_exit() ends the
 # process without running Qt's teardown in the middle of event handling
 target_compile_definitions(xfigcore PRIVATE $<$<COMPILE_LANGUAGE:C>:exit=xq_exit>)
+# fig2dev gets PATH too, to find Ghostscript (shim/spawn_env.c)
+set_source_files_properties(core/u_spawn.c PROPERTIES
+	COMPILE_DEFINITIONS posix_spawnp=xq_posix_spawnp)
 # xfig's main() becomes xfig_main(), called by the Qt main()
 set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE

@@ -21,6 +21,7 @@ public:
 	bool	openPath(const QString &path);
 	bool	mergePath(const QString &path);
 	bool	saveAsPath(const QString &path);
+	bool	exportPath(const QString &path, int lang);
 
 protected:
 	void	closeEvent(QCloseEvent *e) override;
@@ -34,6 +35,7 @@ private:
 	void	setupRulers();
 	void	openFile();
 	void	mergeFile();
+	void	exportFile();
 	bool	saveFileAs();
 	bool	maybeSave();
 	QString	fileDialogDir() const;

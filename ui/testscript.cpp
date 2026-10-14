@@ -16,6 +16,8 @@
  *	save <file.fig>
  *	open|merge|saveas <file.fig>	File menu, as after the file dialog
  *	printpdf <file.pdf>		print, as after "Save as PDF" in the dialog
+ *	export <file> <lang>		File > Export, as after the dialog; lang
+ *					is xfig's language number (mode.h)
  *	datadir				print the data directory in use
  *	quit
  */
@@ -205,6 +207,8 @@ run(QStringList lines)
 			MainWindow::instance()->mergePath(a.value(1));
 		} else if (cmd == "saveas") {
 			MainWindow::instance()->saveAsPath(a.value(1));
+		} else if (cmd == "export") {
+			MainWindow::instance()->exportPath(a.value(1), a.value(2).toInt());
 		} else if (cmd == "datadir") {
 			qWarning("datadir %s", xq_data_path(""));
 		} else if (cmd == "printpdf") {
