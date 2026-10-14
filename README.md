@@ -24,6 +24,7 @@ xfig's code is unchanged. The X11 libraries it calls are replaced underneath it.
 | Layer | Files | What it does |
 |---|---|---|
 | X11 headers | `shim/xshim.h`, `shim/xtshim.h`, `shim/X11/*` | The subset of Xlib/Xt/Xaw/Xft types and functions xfig uses |
+| XPM | `shim/xpm.c` | The part of libXpm xfig uses: an XPM 3 reader, used for XPM picture objects |
 | Xlib on Qt | `platform/xlib_qt.cpp` | Windows and pixmaps are `QImage`s. GCs, XOR rubber-banding, stipples, regions and images are drawn with `QPainter`. Xft text uses fontconfig (same font matching as before) plus FreeType outlines. Retina resolution |
 | Xt event loop | `platform/xt_qt.cpp` | Timers, input, pointer and keyboard queries and cursors run on the Qt event loop |
 | Xt widgets | `shim/xt_widget.c`, `shim/xt_translate.c` | Widget records with resources, callbacks and event handlers. Xt action tables and **translation tables** are parsed and dispatched |
@@ -94,14 +95,17 @@ Verified with test scripts:
 - box, circle, polyline and text drawn interactively and saved to a correct
   `.fig` file;
 - native menus; mode panel; indicator panel, which switches with the mode;
-- object edit dialog; export dialog.
+- object edit dialog; export dialog;
+- all 2561 figures in `old/` compared with X11 xfig (`tests/compare`):
+  2556 render the same. The rest are small: dashes along arcs (X draws
+  them shorter than xfig asks), rotated text about 2.5% wider, and a
+  half-pixel offset of a thin line drawn inside a thick one.
 
 Known gaps (next steps):
 - the UI is forced to light mode: xfig's icons are black bitmaps. A dark
   theme would need recoloured icons;
 - xfig's layouts use fixed pixel sizes made for X11 fonts. Labels and
   buttons grow to fit their text, but some dialogs may still look cramped;
-- XPM images are not read (`f_readxpm.c` needs libXpm; add a Qt-based reader);
 - no input method support for composed non-ASCII text input yet;
 - not yet done: native file dialogs instead of xfig's Xaw file browser, a
   modern toolbar/dock look for the mode and indicator panels,

@@ -20,8 +20,7 @@ pkg_check_modules(TIFF IMPORTED_TARGET libtiff-4)
 file(GLOB CORE_SOURCES ${CMAKE_SOURCE_DIR}/core/*.c)
 list(REMOVE_ITEM CORE_SOURCES
 	${CMAKE_SOURCE_DIR}/core/u_draw_spline.c	# #included by u_draw.c
-	${CMAKE_SOURCE_DIR}/core/w_listwidget.c		# an Xaw widget subclass
-	${CMAKE_SOURCE_DIR}/core/f_readxpm.c)		# needs libXpm
+	${CMAKE_SOURCE_DIR}/core/w_listwidget.c)	# an Xaw widget subclass
 if(NOT TIFF_FOUND)
 	list(REMOVE_ITEM CORE_SOURCES ${CMAKE_SOURCE_DIR}/core/f_readtif.c)
 endif()
@@ -31,9 +30,11 @@ add_library(xfigcore STATIC
 	shim/xt_null.c
 	shim/xt_widget.c
 	shim/xt_translate.c
+	shim/xpm.c
 	shim/fallback.c)
 target_include_directories(xfigcore PUBLIC core shim)
-target_compile_definitions(xfigcore PUBLIC HAVE_CONFIG_H
+# USE_XPM: XPM pictures, export and the color splash, with shim/xpm.c
+target_compile_definitions(xfigcore PUBLIC HAVE_CONFIG_H USE_XPM
 	OBJLIBDIR="${CMAKE_SOURCE_DIR}/../old/xfig-3.2.9a/Libraries"
 	XFIGLIBDIR="${CMAKE_SOURCE_DIR}/../old/xfig-3.2.9a"
 	XFIGDOCDIR="${CMAKE_SOURCE_DIR}/../old/xfig-3.2.9a/doc"
