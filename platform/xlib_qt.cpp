@@ -866,9 +866,17 @@ static QImage
 ximage_to_qimage(XImage *img, GC gc)
 {
 	if (img->bits_per_pixel == 32) {
-		QImage q((const uchar *)img->data, img->width, img->height,
-				img->bytes_per_line, QImage::Format_RGB32);
-		return q.copy();
+		QImage q = QImage((const uchar *)img->data, img->width, img->height,
+				img->bytes_per_line, QImage::Format_RGB32).copy();
+		/* X ignores the top byte, but some of xfig's image readers
+		   (ghostscript output) leave it 0, and Qt copies RGB32 bits
+		   unchanged: the pixels would become transparent */
+		for (int y = 0; y < q.height(); ++y) {
+			QRgb *line = reinterpret_cast<QRgb *>(q.scanLine(y));
+			for (int x = 0; x < q.width(); ++x)
+				line[x] |= 0xff000000u;
+		}
+		return q;
 	}
 	QImage q(img->width, img->height, QImage::Format_RGB32);
 	QRgb fg = gc ? pix2rgb(gc->v.foreground) : 0xffffffffu;
