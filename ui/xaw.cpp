@@ -234,7 +234,7 @@ size_widget(Widget w)
 	 */
 	if ((k == XawPeer::Label || k == XawPeer::Command || k == XawPeer::Toggle ||
 			k == XawPeer::MenuButton) && !xq_widget_window(w) &&
-			*xq_widget_label(w)) {
+			!QString::fromUtf8(xq_widget_label(w)).trimmed().isEmpty()) {
 		wd = qMax(wd, n.width());
 		ht = qMax(ht, n.height());
 	}
@@ -466,7 +466,11 @@ XawPeer::paintFace(QPainter &p, QRect r)
 		bg = pixel_color(v);
 	else if (button)
 		bg = palette().color(QPalette::Button);
-	if (button && isEnabled() && (m_down || on))
+	/* a set Toggle with its own colors: reverse video, as in Xaw (the
+	   update markers in the indicator buttons) */
+	if (on && !m_down && xq_res(m_w, XtNforeground, &v))
+		bg = pixel_color(v);
+	else if (button && isEnabled() && (m_down || on))
 		bg = bg.darker(m_down ? 125 : 115);
 	else if (button && isEnabled() && m_hover)
 		bg = bg.lighter(104);
@@ -1571,6 +1575,10 @@ hook_managed(Widget w, Boolean m)
 	XawPeer *p = XawPeer::of(w);
 	if (!p)
 		return;
+	/* X creates a widget's window when it is first managed, above its
+	   siblings: the update markers lie on the indicator buttons */
+	if (m)
+		p->raise();
 	if (p->adopted()) {
 		p->setVisible(m);
 		if (m && !p->hostManaged())
