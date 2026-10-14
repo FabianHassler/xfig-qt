@@ -233,6 +233,9 @@ def main():
 	ap.add_argument("--sample", type=int,
 			help="compare a random sample of this many figures")
 	ap.add_argument("--seed", type=int, default=1)
+	ap.add_argument("--resume", action="store_true",
+			help="keep the renderings of an interrupted run in --out"
+			" and render only the missing figures")
 	ap.add_argument("--qt", type=Path,
 			help="xfig-qt binary (default: build/xfig.app)")
 	ap.add_argument("--fail", type=float, default=0.05,
@@ -251,11 +254,16 @@ def main():
 
 	out = args.out.resolve()
 	for d in ("old", "qt", "diff"):
-		shutil.rmtree(out / d, ignore_errors=True)
-		(out / d).mkdir(parents=True)
+		if not args.resume:
+			shutil.rmtree(out / d, ignore_errors=True)
+		(out / d).mkdir(parents=True, exist_ok=True)
 
 	displays = queue.Queue()
-	opened = [Display(140 + i) for i in range(args.jobs)]
+	# skip display numbers in use (another run, the user's X server)
+	free = (n for n in range(140, 400)
+			if not Path(f"/tmp/.X11-unix/X{n}").exists()
+			and not Path(f"/tmp/.X{n}-lock").exists())
+	opened = [Display(next(free)) for _ in range(args.jobs)]
 	for d in opened:
 		displays.put(d)
 
@@ -263,12 +271,16 @@ def main():
 		k = key_of(fig, base)
 		old_png, qt_png = out / "old" / f"{k}.png", out / "qt" / f"{k}.png"
 		notes = set()
-		disp = displays.get()
-		try:
-			err = render_old(disp, fig, old_png, notes)
-		finally:
-			displays.put(disp)
-		err = err or render_qt(fig, qt_png)
+		# the diff image is written last: its figure was finished
+		if args.resume and (out / "diff" / f"{k}.png").exists():
+			err = None
+		else:
+			disp = displays.get()
+			try:
+				err = render_old(disp, fig, old_png, notes)
+			finally:
+				displays.put(disp)
+			err = err or render_qt(fig, qt_png)
 		row = dict(fig=str(fig.relative_to(base)), key=k, error=err,
 				note=", ".join(sorted(notes)),
 				score=1.0, bad=0, ink=0)
