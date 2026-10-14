@@ -1449,6 +1449,12 @@ XawViewport::setChild(XawPeer *child)
 }
 
 void
+XawViewport::setHorizontalScrollBarAsNeeded()
+{
+	m_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+}
+
+void
 XawViewport::childLaidOut(XawPeer *child)
 {
 	if (!m_fit)

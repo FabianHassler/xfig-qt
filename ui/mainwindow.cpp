@@ -33,7 +33,7 @@ MainWindow::MainWindow()
 	m_message->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	m_top->addWidget(m_message, 1);
 
-	QHBoxLayout *middle = new QHBoxLayout;
+	QHBoxLayout *middle = m_middle = new QHBoxLayout;
 	middle->setSpacing(0);
 	outer->addLayout(middle, 1);
 
@@ -42,11 +42,11 @@ MainWindow::MainWindow()
 	m_left->setSpacing(2);
 	middle->addLayout(m_left);
 
+	/* rulers and canvas, arranged in setupRulers() */
 	m_grid = new QGridLayout;
 	m_grid->setContentsMargins(0, 0, 0, 0);
 	m_grid->setSpacing(0);
 	m_grid->setRowStretch(1, 1);
-	m_grid->setColumnStretch(1, 1);
 	middle->addLayout(m_grid, 1);
 
 	m_right = new QVBoxLayout;
@@ -191,6 +191,33 @@ MainWindow::fillMenu(QMenu *qm, int index)
 	}
 }
 
+/* ----------------------------------------------------------------- rulers */
+
+/* As in xfig, the side ruler is right of the canvas and the unit box ends
+   the top ruler's row.  With -right (the mode panel on the right) the
+   side ruler and the unit box are left of the canvas and the top ruler.
+   Called with the first of these widgets, when xfig has read its options. */
+void
+MainWindow::setupRulers()
+{
+	if (m_rulersSetUp)
+		return;
+	m_rulersSetUp = true;
+	m_rulerRight = !xqb_rhs_panel();
+	m_grid->setColumnStretch(m_rulerRight ? 0 : 1, 1);
+	if (!m_rulerRight) {
+		/* the mode panel goes right of the canvas */
+		m_middle->removeItem(m_left);
+		m_middle->insertLayout(m_middle->indexOf(m_grid) + 1, m_left);
+	}
+	if (m_rulerRight) {
+		m_rulerRow = new QHBoxLayout;
+		m_rulerRow->setContentsMargins(0, 0, 0, 0);
+		m_rulerRow->setSpacing(0);
+		m_grid->addLayout(m_rulerRow, 0, 0, 1, 2);
+	}
+}
+
 /* ------------------------------------------------------------ file dialogs */
 
 static const char *fig_filter = "Fig files (*.fig);;All files (*)";
@@ -310,6 +337,8 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		"ind_panel", "upd_ctrl_form", "mouse_panel"};
 	if (adopt.contains(n))
 		p->setAdopted(true);
+	if (n == "canvas" || n == "topruler" || n == "sideruler" || n == "unitbox")
+		setupRulers();
 	if (n == "canvas") {
 		p->setParent(nullptr);
 		p->setHostManaged(true);
@@ -318,7 +347,7 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->setFocusPolicy(Qt::StrongFocus);
 		p->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 		p->onResize = [](int wd, int ht) { xqb_canvas_resized(wd, ht); };
-		m_grid->addWidget(p, 1, 1);
+		m_grid->addWidget(p, 1, m_rulerRight ? 0 : 1);
 		p->show();
 		p->setFocus();
 	} else if (n == "topruler") {
@@ -328,7 +357,10 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->setFixedHeight(p->sizeHint().height());
 		p->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 		p->onResize = [](int wd, int) { xqb_rulers_resized(wd, 0); };
-		m_grid->addWidget(p, 0, 1);
+		if (m_rulerRight)
+			m_rulerRow->insertWidget(0, p, 1);
+		else
+			m_grid->addWidget(p, 0, 1);
 		p->show();
 	} else if (n == "sideruler") {
 		p->setParent(nullptr);
@@ -337,7 +369,7 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->setFixedWidth(p->sizeHint().width());
 		p->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Ignored);
 		p->onResize = [](int, int ht) { xqb_rulers_resized(0, ht); };
-		m_grid->addWidget(p, 1, 0);
+		m_grid->addWidget(p, 1, m_rulerRight ? 1 : 0);
 		p->show();
 	} else if (n == "unitbox") {
 		/* the corner between the rulers, showing the units */
@@ -346,8 +378,16 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		QFont f = p->font();
 		f.setPixelSize(10);
 		p->setFont(f);
-		p->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-		m_grid->addWidget(p, 0, 0);
+		if (m_rulerRight) {
+			/* as wide as its text, at least as the side ruler */
+			p->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Ignored);
+			p->setFixedWidth(qMax(p->sizeHint().width(),
+				QFontMetrics(f).horizontalAdvance("1in = 1.00in") + 12));
+			m_rulerRow->addWidget(p);
+		} else {
+			p->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+			m_grid->addWidget(p, 0, 0);
+		}
 		p->show();
 	} else if (n == "mode_panel") {
 		m_modePanel = p;
@@ -374,14 +414,18 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->setHostManaged(true);
 		p->setFixedHeight(p->sizeHint().height());
 		p->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-		if (XawViewport *vp = qobject_cast<XawViewport *>(p))
+		if (XawViewport *vp = qobject_cast<XawViewport *>(p)) {
 			vp->setFitHeight(true);
+			/* xfig forces a scrollbar; Xaw drew it as a plain band */
+			vp->setHorizontalScrollBarAsNeeded();
+		}
 		m_bottom->addWidget(p, 1);
 		p->show();
 	} else if (n == "upd_ctrl_form") {
 		p->setParent(nullptr);
 		m_bottom->addWidget(p, 0, Qt::AlignTop);
-		p->show();
+		/* xfig shows it in the update mode only */
+		p->setVisible(XtIsManaged(w));
 	} else if (n == "mouse_panel") {
 		p->setParent(nullptr);
 		p->setHostManaged(true);
@@ -421,6 +465,8 @@ MainWindow::widgetSetValues(Widget w, ArgList args, Cardinal n)
 		} else if (!strcmp(name, XtNtitle) && args[i].value &&
 				!strcmp(xq_widget_name(w), "xfig")) {
 			setWindowTitle(QString::fromUtf8((const char *)args[i].value));
+			/* the document icon in the macOS title bar */
+			setWindowFilePath(QString::fromLocal8Bit(xqb_current_path()));
 		}
 	}
 }

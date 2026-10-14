@@ -31,6 +31,7 @@ private:
 	void	fillMenu(QMenu *qm, int index);
 	void	adopt(XawPeer *p, QWidget *area);
 	void	fitModePanel();
+	void	setupRulers();
 	void	openFile();
 	void	mergeFile();
 	bool	saveFileAs();
@@ -40,7 +41,10 @@ private:
 	static MainWindow *s_instance;
 	QGridLayout	*m_grid;
 	QVBoxLayout	*m_left, *m_right;
-	QHBoxLayout	*m_bottom, *m_top;
+	QHBoxLayout	*m_bottom, *m_top, *m_middle;
+	QHBoxLayout	*m_rulerRow = nullptr;	/* top ruler and unit box */
+	bool		m_rulerRight = true;	/* side ruler right of the canvas */
+	bool		m_rulersSetUp = false;
 	Widget		m_mouseWidget = nullptr;
 	XawPeer		*m_modePanel = nullptr;
 	QLabel		*m_message;

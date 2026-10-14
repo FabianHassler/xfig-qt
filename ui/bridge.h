@@ -19,6 +19,7 @@ void	xqb_rulers_resized(int topruler_wd, int sideruler_ht);
 void	xqb_redraw(void);
 int	xqb_load_file(const char *path);
 int	xqb_save_file(const char *path);
+int	xqb_rhs_panel(void);
 int	xqb_busy(void);
 int	xqb_needs_saving(void);
 int	xqb_open(const char *path);

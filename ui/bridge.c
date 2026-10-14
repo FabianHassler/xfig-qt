@@ -127,6 +127,13 @@ split_path(const char *path, char *dir, char *name)
 	return 0;
 }
 
+/* -right: mode panel on the right, side ruler left of the canvas */
+int
+xqb_rhs_panel(void)
+{
+	return appres.RHS_PANEL;
+}
+
 /* in the middle of drawing or editing: xfig says so in the message panel */
 int
 xqb_busy(void)

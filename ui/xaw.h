@@ -192,6 +192,9 @@ public:
 	QWidget	*childArea() const;
 	/* keep the height of the child plus a scrollbar (host managed) */
 	void	setFitHeight(bool f) { m_fit = f; }
+	/* a horizontal scrollbar only when the child is wider (space for it
+	   stays reserved with setFitHeight) */
+	void	setHorizontalScrollBarAsNeeded();
 	void	childLaidOut(XawPeer *child);
 	QSize	naturalSize() const override;
 protected:
