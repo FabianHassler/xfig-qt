@@ -13,7 +13,10 @@
 #include <QSocketNotifier>
 #include <QTimer>
 
+#if defined(__APPLE__) || defined(__GLIBC__)
 #include <execinfo.h>
+#define HAVE_BACKTRACE 1
+#endif
 #include <unistd.h>
 
 #include "xq.h"
@@ -311,12 +314,14 @@ xq_default_visual(void)
 extern "C" void
 xq_exit(int status)
 {
+#ifdef HAVE_BACKTRACE
 	if (qEnvironmentVariableIsSet("XFIGQT_DEBUG")) {
 		void *frames[32];
 		int n = backtrace(frames, 32);
 		fprintf(stderr, "xfig exits with status %d from:\n", status);
 		backtrace_symbols_fd(frames, n, 2);
 	}
+#endif
 	fflush(nullptr);
 	_exit(status);
 }

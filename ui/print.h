@@ -1,5 +1,5 @@
 /*
- * print.h - print through the macOS print dialog.
+ * print.h - print through the system's print dialog.
  */
 #ifndef PRINT_H
 #define PRINT_H
@@ -13,6 +13,9 @@ class QPrinter;
 bool	print_figure(QWidget *parent);
 
 /* print to the printer or PDF file the dialog chose in printer */
-bool	print_figure_with(const QPrinter &printer, QWidget *parent);
+bool	print_figure_with(QPrinter &printer, QWidget *parent);
+
+/* Ghostscript: gs, or gswin64c on Windows; empty if not found */
+QString	find_ghostscript();
 
 #endif

@@ -24,6 +24,11 @@ list(REMOVE_ITEM CORE_SOURCES
 if(NOT TIFF_FOUND)
 	list(REMOVE_ITEM CORE_SOURCES ${CMAKE_SOURCE_DIR}/core/f_readtif.c)
 endif()
+if(WIN32)
+	# no fork() or posix_spawn(): shim/u_spawn_win.c starts processes
+	list(REMOVE_ITEM CORE_SOURCES ${CMAKE_SOURCE_DIR}/core/u_spawn.c)
+	list(APPEND CORE_SOURCES shim/u_spawn_win.c shim/win32/compat.c)
+endif()
 
 add_library(xfigcore STATIC
 	${CORE_SOURCES}
@@ -48,9 +53,21 @@ target_compile_definitions(xfigcore PRIVATE exit=xq_exit)
 set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE
 	PkgConfig::PNG JPEG::JPEG m)
+if(WIN32)
+	# the POSIX parts Windows lacks (shim/win32), before every C file
+	target_include_directories(xfigcore PUBLIC shim/win32)
+	target_compile_options(xfigcore PUBLIC
+		"$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_SOURCE_DIR}/shim/win32/xq_win32.h>")
+	# regex.h and iconv from MSYS2 (libgnurx, libiconv)
+	find_library(GNURX_LIBRARY gnurx REQUIRED)
+	find_library(ICONV_LIBRARY iconv REQUIRED)
+	target_link_libraries(xfigcore PUBLIC ${GNURX_LIBRARY} ${ICONV_LIBRARY})
+elseif(APPLE)
+	target_link_libraries(xfigcore PUBLIC iconv)
+endif()
 
 # ------------------------------------------------------------- application
-qt_add_executable(xfig MACOSX_BUNDLE
+qt_add_executable(xfig MACOSX_BUNDLE WIN32
 	platform/xlib_qt.cpp
 	platform/xt_qt.cpp
 	ui/main.cpp
@@ -63,8 +80,12 @@ target_include_directories(xfig PRIVATE platform ui)
 # running from the build directory, xfig's data is data/ in the sources
 target_compile_definitions(xfig PRIVATE
 	XFIGQT_SOURCE_DATADIR="${CMAKE_SOURCE_DIR}/data")
-# printing goes to CUPS, the macOS print system
-target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport cups)
+target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport)
+# printing goes to CUPS on macOS and Linux (ui/print.cpp)
+if(NOT WIN32)
+	find_library(CUPS_LIBRARY cups REQUIRED)
+	target_link_libraries(xfig PRIVATE ${CUPS_LIBRARY})
+endif()
 set_target_properties(xfig PROPERTIES
 	MACOSX_BUNDLE_BUNDLE_NAME "Xfig"
 	MACOSX_BUNDLE_GUI_IDENTIFIER "org.xfig.xfig"

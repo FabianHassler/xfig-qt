@@ -6,6 +6,7 @@
  */
 #include "mainwindow.h"
 #include "bridge.h"
+#include "print.h"
 
 void run_test_script(const QString &path);
 
@@ -115,6 +116,21 @@ main(int argc, char **argv)
 	/* defaults that differ from the X11 version (the command line wins) */
 	xq_set_resource("splash", "False");
 	xq_set_resource("library_dir", xq_data_path("Libraries"));
+	/* EPS and PDF pictures: Ghostscript is gswin64c on Windows, and an
+	   app started from the Finder has no Homebrew in its PATH */
+	if (!find_ghostscript().isEmpty())
+		xq_set_resource("ghostscript", QFile::encodeName(find_ghostscript()));
+#ifdef Q_OS_MACOS
+	/* fig2dev and Ghostscript, when started from the Finder */
+	QByteArray path = qgetenv("PATH");
+	for (const char *dir : {"/usr/local/bin", "/opt/homebrew/bin"})
+		if (!path.split(':').contains(dir))
+			path = dir + QByteArray(":") + path;
+	qputenv("PATH", path);
+#endif
+	/* xfig wants TMPDIR, which Windows does not set */
+	if (!qEnvironmentVariableIsSet("XFIGTMPDIR"))
+		qputenv("XFIGTMPDIR", QFile::encodeName(QDir::tempPath()));
 
 	/* xfig parses the command line itself; it does not return */
 	return xfig_main(argc, argv);
