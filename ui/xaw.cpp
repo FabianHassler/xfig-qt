@@ -46,7 +46,11 @@ res(Widget w, const char *name, XtArgVal def = 0)
 static QString
 qstr(const char *s)
 {
-	return s ? QString::fromUtf8(s) : QString();
+	if (!s)
+		return QString();
+	/* xfig's own texts are Latin-1 (the copyright signs in About) */
+	QString u = QString::fromUtf8(s);
+	return u.contains(QChar::ReplacementCharacter) ? QString::fromLatin1(s) : u;
 }
 
 /* -------------------------------------------------------------- XawPeer */
@@ -234,7 +238,7 @@ size_widget(Widget w)
 	 */
 	if ((k == XawPeer::Label || k == XawPeer::Command || k == XawPeer::Toggle ||
 			k == XawPeer::MenuButton) && !xq_widget_window(w) &&
-			!QString::fromUtf8(xq_widget_label(w)).trimmed().isEmpty()) {
+			!qstr(xq_widget_label(w)).trimmed().isEmpty()) {
 		wd = qMax(wd, n.width());
 		ht = qMax(ht, n.height());
 	}
@@ -294,6 +298,11 @@ XawPeer::layoutChildren()
 				x = xq_widget_x(fh) + xq_widget_width(fh) + 2 * xq_widget_border(fh) + hd;
 			if (fv)
 				y = xq_widget_y(fv) + xq_widget_height(fv) + 2 * xq_widget_border(fv) + vd;
+			/* xfig places some widgets a few X11 font characters left
+			   of a label's end ("Show Hidden" in the file panels):
+			   with the narrower fonts here they would leave the Form */
+			x = qMax(x, 0);
+			y = qMax(y, 0);
 			xq_widget_set_position(c, x, y);
 			if (!managed || cp->hostManaged())
 				continue;
@@ -1640,6 +1649,8 @@ hook_popup(Widget w, XtGrabKind k)
 	/* xfig's print panel holds only print options here */
 	if (!strcmp(xq_widget_name(w), "print_popup"))
 		xqb_adapt_print_panel();
+	else if (!strcmp(xq_widget_name(w), "global_settings"))
+		xqb_adapt_global_panel(w);
 	if (XawShell *sh = qobject_cast<XawShell *>(XawPeer::of(w)))
 		sh->popup(k);
 }

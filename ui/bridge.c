@@ -409,6 +409,22 @@ xqb_adapt_print_panel(void)
 	}
 }
 
+/* Global settings: xfig puts "Track mouse in rulers" over "Autorefresh
+   figure" (both have no widget above them); put it below */
+void
+xqb_adapt_global_panel(Widget shell)
+{
+	Widget	track = find_named(shell, "track_mouse");
+	Widget	autoref = find_named(shell, "auto_refresh");
+	XtArgVal fv = 0;
+
+	if (!track || !autoref)
+		return;
+	XtVaGetValues(track, XtNfromVert, &fv, NULL);
+	if (!fv)
+		XtVaSetValues(track, XtNfromVert, (XtArgVal)autoref, NULL);
+}
+
 void
 xqb_message(const char *msg)
 {

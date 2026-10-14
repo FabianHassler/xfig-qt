@@ -35,6 +35,7 @@ int	xqb_export(const char *path, int lang);
 void	xqb_message(const char *msg);
 void	xqb_set_native_print(void (*print)(void));
 void	xqb_adapt_print_panel(void);
+void	xqb_adapt_global_panel(Widget shell);
 const char *xqb_current_file(void);
 const char *xqb_current_dir(void);
 int	xqb_figure_modified(void);

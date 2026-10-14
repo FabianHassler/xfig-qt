@@ -276,6 +276,8 @@ add_child(Widget parent, Widget w)
 	parent->children[parent->nchildren++] = w;
 }
 
+static void	apply_widget_res(Widget w);
+
 static Widget
 create(const char *name, WidgetClass wc, Widget parent, ArgList a, Cardinal n,
 		Boolean managed, Boolean popup)
@@ -289,6 +291,7 @@ create(const char *name, WidgetClass wc, Widget parent, ArgList a, Cardinal n,
 	w->is_popup = popup;
 	store_args(w, a, n);
 	add_child(parent, w);
+	apply_widget_res(w);
 	if (xq_hooks.created)
 		xq_hooks.created(w);
 	/* backwards compatibility with the first, simpler hook */
@@ -883,11 +886,123 @@ parse_options(XrmOptionDescList opts, Cardinal nopts, int *argc, String *argv)
 	*argc = out;
 }
 
+/*
+ * Widget resources from the fallback resources (shim/fallback.c), such as
+ * "Fig*file_panel*mask*string: *.fig": a pattern of widget names with
+ * loose (*) and tight (.) bindings, ending in the resource name.  They
+ * apply when a widget is created, unless xfig sets the resource itself.
+ */
+typedef struct WidgetRes {
+	int	n;		/* components: widget names, then the resource */
+	char	**part;
+	char	*bind;		/* '*' or '.' before each component */
+	char	*value;
+	struct WidgetRes *next;
+} WidgetRes;
+
+static WidgetRes *widget_res = NULL;
+
+static void
+add_widget_res(const char *pattern, const char *value)
+{
+	WidgetRes *r = calloc(1, sizeof *r);
+	r->part = calloc(strlen(pattern) + 1, sizeof(char *));
+	r->bind = calloc(strlen(pattern) + 1, 1);
+	r->value = strdup(value);
+	const char *p = pattern;
+	while (*p) {
+		char b = '.';
+		while (*p == '.' || *p == '*') {
+			if (*p == '*')
+				b = '*';
+			++p;
+		}
+		const char *e = p;
+		while (*e && *e != '.' && *e != '*')
+			++e;
+		if (e == p)
+			break;
+		r->bind[r->n] = b;
+		r->part[r->n++] = strndup(p, e - p);
+		p = e;
+	}
+	r->next = widget_res;
+	widget_res = r;
+}
+
+/* does pattern component pi on match names[ni..] */
+static Boolean
+res_match(const WidgetRes *r, int pi, const char **names, int nn, int ni)
+{
+	if (pi == r->n)
+		return ni == nn;
+	if (r->bind[pi] == '.')
+		return ni < nn && !strcmp(r->part[pi], names[ni]) &&
+			res_match(r, pi + 1, names, nn, ni + 1);
+	for (int k = ni; k < nn; ++k)
+		if (!strcmp(r->part[pi], names[k]) &&
+				res_match(r, pi + 1, names, nn, k + 1))
+			return True;
+	return False;
+}
+
+static void
+apply_widget_res(Widget w)
+{
+	const char *names[64];
+	int n = 0;
+	/* the widget names below the application shell, as Xt sees them */
+	for (Widget p = w; p && p->parent && n < 62; p = p->parent)
+		++n;
+	int k = n;
+	for (Widget p = w; p && p->parent && k > 0; p = p->parent)
+		names[--k] = p->name;
+	for (WidgetRes *r = widget_res; r; r = r->next) {
+		const char *res = r->part[r->n - 1];
+		XtArgVal v;
+		names[n] = res;
+		if (!res_match(r, 0, names, n + 1, 0) || xq_res(w, res, &v))
+			continue;
+		Arg a;
+		a.name = (String)res;
+		if (!strcmp(res, XtNbackground) || !strcmp(res, XtNforeground) ||
+				!strcmp(res, XtNborderColor)) {
+			XColor c;
+			if (!XParseColor(NULL, 0, r->value, &c))
+				continue;
+			XAllocColor(NULL, 0, &c);
+			a.value = (XtArgVal)c.pixel;
+		} else {
+			a.value = (XtArgVal)r->value;
+		}
+		store_args(w, &a, 1);
+	}
+}
+
 Widget
 XtAppInitialize(XtAppContext *app, const char *cl, XrmOptionDescList o, Cardinal no,
 		int *argc, String *argv, String *fb, ArgList a, Cardinal k)
 {
-	(void)cl; (void)fb;
+	(void)cl;
+	/* the fallback resources: "Fig.name: value" for the application,
+	   patterns of widget names for widgets; the command line wins */
+	for (; fb && *fb; ++fb) {
+		const char *colon = strchr(*fb, ':');
+		if (!colon)
+			continue;
+		char *spec = strndup(*fb, colon - *fb);
+		const char *value = colon + 1;
+		while (*value == ' ' || *value == '\t')
+			++value;
+		for (char *e = spec + strlen(spec); e > spec && (e[-1] == ' ' || e[-1] == '\t'); )
+			*--e = '\0';
+		const char *rest = !strncmp(spec, "Fig", 3) ? spec + 3 : spec;
+		if (strpbrk(rest + 1, ".*"))
+			add_widget_res(rest, value);
+		else
+			xq_set_resource(spec, value);
+		free(spec);
+	}
 	if (argc && argv)
 		parse_options(o, no, argc, argv);
 	if (app)

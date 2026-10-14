@@ -370,11 +370,6 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		return;
 	QString n = QString::fromLatin1(name);
 	Widget parent = xq_widget_parent(w);
-	/* the colors of xfig's app-defaults (Fig-color.ad) for the update
-	   markers, which xfig also gives the update control buttons */
-	if (n == "update" && parent && !strcmp(xq_widget_name(parent), "button_form"))
-		XtVaSetValues(w, XtNbackground, (XtArgVal)0x000000,
-				XtNforeground, (XtArgVal)0xff0000, NULL);
 	if (qEnvironmentVariableIsSet("XFIGQT_DEBUG"))
 		qDebug("created %s (%s) in %s, %dx%d", name, wclass,
 			parent ? xq_widget_name(parent) : "-",
