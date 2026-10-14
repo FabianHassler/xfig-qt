@@ -21,6 +21,7 @@
  *	printpdf <file.pdf>		print, as after "Save as PDF" in the dialog
  *	export <file> <lang>		File > Export, as after the dialog; lang
  *					is xfig's language number (mode.h)
+ *	indbutton <k>			click the k-th indicator shown (0 = first)
  *	datadir				print the data directory in use
  *	quit
  */
@@ -237,6 +238,25 @@ run(QStringList lines)
 			MainWindow::instance()->saveAsPath(a.value(1));
 		} else if (cmd == "export") {
 			MainWindow::instance()->exportPath(a.value(1), a.value(2).toInt());
+		} else if (cmd == "indbutton") {
+			int k = a.value(1).toInt();
+			int index = 0;
+			Widget box = nullptr;
+			for (Widget root : xqb_root_widgets())
+				if ((box = find_widget(root, "ind_box", index)))
+					break;
+			Widget hit = nullptr;
+			for (int i = 0; box && i < xq_widget_num_children(box) && !hit; ++i) {
+				Widget f = xq_widget_child(box, i);
+				if (!XtIsManaged(f) || k-- > 0)
+					continue;
+				int j = 0;
+				hit = find_widget(f, "button", j);
+			}
+			if (XawPeer *p = XawPeer::of(hit))
+				click(p, QPointF(p->width() / 2, p->height() / 2), 1);
+			else
+				qWarning("no indicator %s", qPrintable(a.value(1)));
 		} else if (cmd == "datadir") {
 			qWarning("datadir %s", xq_data_path(""));
 		} else if (cmd == "printpdf") {

@@ -1481,6 +1481,19 @@ XawViewport::childLaidOut(XawPeer *child)
 QSize
 XawViewport::naturalSize() const
 {
+	/* without a size from xfig an Xaw Viewport takes its child's (the
+	   points in the edit dialog of a polyline) */
+	if (XawPeer *c = qobject_cast<XawPeer *>(m_area->widget())) {
+		if (c->kind() == Form || c->kind() == Box)
+			c->layoutChildren();
+		int cw = xq_widget_width(c->xt()), ch = xq_widget_height(c->xt());
+		if (cw > 0 && ch > 0) {
+			if (m_area->verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff)
+				cw += m_area->verticalScrollBar()->sizeHint().width();
+			int b = 2 * xq_widget_border(m_w);
+			return QSize(cw + b, ch + b);
+		}
+	}
 	return QSize(qMax(xq_widget_width(m_w), 50), qMax(xq_widget_height(m_w), 50));
 }
 
