@@ -5,6 +5,8 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +36,7 @@
 #include "w_print.h"
 #include "xq_widget.h"
 #include "paintop.h"
+#include "svgout.h"
 
 extern Widget	tool, canvas_sw, topruler_sw, sideruler_sw, msg_panel, mousefun,
 		unitbox_sw, layer_canvas;
@@ -261,6 +264,25 @@ find_named(Widget w, const char *name)
 	return NULL;
 }
 
+/* the last widget named name: make_pulldown_menu() puts separator lines
+   of the same name before the first bitmap language's entry */
+static Widget
+find_last_named(Widget w, const char *name)
+{
+	Widget	found = NULL;
+
+	if (!w)
+		return NULL;
+	if (!strcmp(xq_widget_name(w), name))
+		found = w;
+	for (int i = 0; i < xq_widget_num_children(w); ++i) {
+		Widget f = find_last_named(xq_widget_child(w, i), name);
+		if (f)
+			found = f;
+	}
+	return found;
+}
+
 /*
  * What the export panel's Export button does, for the language and the
  * path chosen in the file dialog: xfig's export panel keeps its other
@@ -282,7 +304,7 @@ xqb_export(const char *path, int lang)
 	}
 	/* choose the language in the panel's menu, which also updates the
 	   panel (lang_select() in w_export.c) */
-	Widget entry = find_named(export_popup, lang_texts[lang]);
+	Widget entry = find_last_named(export_popup, lang_texts[lang]);
 	if (entry)
 		xq_call_callbacks(entry, XtNcallback, NULL);
 	else
@@ -524,3 +546,208 @@ xqb_mode_button(int m)
 }
 
 Widget xqb_tool_widget(void) { return tool; }
+
+/* ----------------------------------------- PDF and bitmaps without Ghostscript */
+
+/*
+ * fig2dev makes PDF and bitmaps from its PostScript with Ghostscript, and
+ * xfig renders EPS and PDF pictures with it.  Without Ghostscript (the
+ * ghostscript resource is empty), fig2dev's SVG is drawn with Qt instead
+ * (svgout.cpp), and PDF pictures are rendered with QtPdf.
+ */
+extern int	gs_bitmap(char *file, F_pic *pic, int llx, int lly,
+			int urx, int ury);
+
+static int
+have_ghostscript(void)
+{
+	return appres.ghostscript && appres.ghostscript[0];
+}
+
+int
+xqb_have_ghostscript(void)
+{
+	return have_ghostscript();
+}
+
+static int
+needs_ghostscript(int lang)
+{
+	return lang == LANG_PDF || lang == LANG_PSPDF || lang == LANG_PDFTEX ||
+		lang == LANG_PSPDFTEX || lang >= FIRST_BITMAP_LANG;
+}
+
+/* fig2dev's SVG of the figure (with the magnification and the layers)
+   into a new temporary file, named in svg[PATH_MAX]; picture paths are
+   relative to cur_export_dir */
+static int
+make_svg(char *svg)
+{
+	const char	*tmp = getenv("XFIGTMPDIR");
+	char		none[1] = "";
+	int		fd, ret, lang = cur_exp_lang;
+	Boolean		warn = warnexist;
+	struct stat	st;
+
+	snprintf(svg, PATH_MAX, "%s/xfig-XXXXXX.svg", tmp && *tmp ? tmp : "/tmp");
+	if ((fd = mkstemps(svg, 4)) < 0) {
+		file_msg("Cannot create a temporary file %s: %s", svg,
+				strerror(errno));
+		return -1;
+	}
+	close(fd);
+	cur_exp_lang = LANG_SVG;
+	warnexist = False;
+	ret = print_export(svg, 0, 0, none, NULL, False, 0, none);
+	cur_exp_lang = lang;
+	warnexist = warn;
+	if (ret || stat(svg, &st) || st.st_size == 0) {
+		unlink(svg);
+		return -1;
+	}
+	return 0;
+}
+
+/* the paper of the print and export panels */
+static void
+page_job(struct xq_svg_job *job)
+{
+	job->page = 1;
+	job->paper_wd = paper_sizes[appres.papersize].width * 72.0 / PIX_PER_INCH;
+	job->paper_ht = paper_sizes[appres.papersize].height * 72.0 / PIX_PER_INCH;
+	job->landscape = appres.landscape;
+	job->flushleft = appres.flushleft;
+}
+
+/*
+ * print_export() for w_export.c: without Ghostscript, PDF and bitmaps
+ * come from SVG.
+ */
+int
+xq_print_export(char *file, int xoff, int yoff, char *backgrnd,
+		char *transparent, Boolean use_transp_backg, int border,
+		char *grid)
+{
+	char			svg[PATH_MAX];
+	struct xq_svg_job	job;
+	int			stat;
+
+	if (have_ghostscript() || !needs_ghostscript(cur_exp_lang))
+		return print_export(file, xoff, yoff, backgrnd, transparent,
+				use_transp_backg, border, grid);
+
+	if (!xq_svg_can_export(lang_items[cur_exp_lang])) {
+		file_msg("Export to %s needs Ghostscript (gs), which was not "
+				"found.", lang_items[cur_exp_lang]);
+		put_msg("Export to \"%s\" failed", file);
+		return 1;
+	}
+	if (!ok_to_write(file, "EXPORT"))
+		return 1;
+	put_msg("Exporting to file \"%s\" ...", file);
+	app_flush();
+	if (make_svg(svg)) {
+		put_msg("Export to \"%s\" failed", file);
+		return 1;
+	}
+	memset(&job, 0, sizeof job);
+	job.svg = svg;
+	job.dir = cur_export_dir;
+	job.out = file;
+	job.format = lang_items[cur_exp_lang];
+	job.border = border;
+	job.mag = appres.magnification / 100.0;
+	job.background = backgrnd;
+	if (cur_exp_lang == LANG_PDF && pdf_pagemode)
+		page_job(&job);
+	job.smooth = appres.smooth_factor > 1;
+	job.quality = appres.jpeg_quality;
+	stat = xq_svg_export(&job);
+	unlink(svg);
+	if (stat) {
+		file_msg("%s", xq_svg_error());
+		put_msg("Export to \"%s\" failed", file);
+		return 1;
+	}
+	put_msg("Export to \"%s\" done (drawn from SVG: Ghostscript was not "
+			"found)", file);
+	return 0;
+}
+
+/* the print settings and fig2dev's SVG for printing without Ghostscript;
+   the caller removes svg[PATH_MAX] */
+int
+xqb_print_svg(char *svg, struct xq_svg_job *job)
+{
+	static char	backgrnd[10];
+	char		grid[80];
+	char		dir[PATH_MAX];
+	int		stat;
+
+	if (check_action_on() || emptyfigure_msg("Print"))
+		return -1;
+	print_settings(backgrnd, grid);
+	/* make_svg() writes picture paths relative to cur_export_dir */
+	strcpy(dir, cur_export_dir);
+	strcpy(cur_export_dir, cur_file_dir);
+	change_directory(cur_file_dir);
+	stat = make_svg(svg);
+	strcpy(cur_export_dir, dir);
+	if (stat)
+		return -1;
+	memset(job, 0, sizeof *job);
+	job->svg = svg;
+	job->dir = cur_file_dir;
+	job->format = "pdf";
+	job->mag = appres.magnification / 100.0;
+	job->background = backgrnd;
+	page_job(job);
+	return 0;
+}
+
+/* gs_bitmap() for f_readeps.c: without Ghostscript, PDF pictures are
+   rendered with QtPdf, at gs_bitmap()'s 160 pixels per inch */
+int
+xq_gs_bitmap(char *file, F_pic *pic, int llx, int lly, int urx, int ury)
+{
+	int		w, h;
+	size_t		i, n;
+	unsigned char	*rgb, *pos;
+
+	if (have_ghostscript() || pic->pic_cache->subtype != T_PIC_PDF ||
+			tool_cells <= 2 || appres.monochrome)
+		return gs_bitmap(file, pic, llx, lly, urx, ury);
+
+	w = (urx - llx) * 160 / 72 + 1;
+	h = (ury - lly) * 160 / 72 + 1;
+	n = (size_t)w * h;
+	if ((rgb = malloc(n * 3)) == NULL)
+		return -1;
+	if (xq_pdf_raster(file, w, h, rgb)) {
+		free(rgb);
+		return -1;
+	}
+	pic->pic_cache->bit_size.x = w;
+	pic->pic_cache->bit_size.y = h;
+	if (tool_vclass == TrueColor && image_bpp == 4) {
+		pos = pic->pic_cache->bitmap = malloc(n * 4);
+		for (i = 0; pos && i < n; ++i, pos += 4)
+			*(unsigned int *)pos = ((unsigned int)rgb[3*i] << 16) +
+				((unsigned int)rgb[3*i+1] << 8) + rgb[3*i+2];
+		pic->pic_cache->numcols = -1;
+	} else {
+		/* map_to_palette() takes BGR triples */
+		pos = pic->pic_cache->bitmap = malloc(n * 3);
+		for (i = 0; pos && i < n; ++i, pos += 3) {
+			pos[0] = rgb[3*i+2];
+			pos[1] = rgb[3*i+1];
+			pos[2] = rgb[3*i];
+		}
+	}
+	free(rgb);
+	if (!pic->pic_cache->bitmap)
+		return -1;
+	if (pic->pic_cache->numcols != -1 && !map_to_palette(pic))
+		return -1;
+	return 0;
+}

@@ -24,7 +24,9 @@ open build/xfig.app --args figure.fig	# macOS
 
 xfig's command-line options still work (`-zoom 2`, `-metric`,
 `-startfontsize 14`, `-splash`, `-xrm 'Fig.resource: value'`, …).
-Export and printing need fig2dev and Ghostscript, as with X11 xfig.
+Export and printing need fig2dev; Ghostscript is recommended. Without it,
+PDF, bitmap export and printing are drawn by Qt from fig2dev's SVG
+(see [INSTALL.md](INSTALL.md)).
 
 ## How it works
 
@@ -111,7 +113,8 @@ Verified with test scripts:
 - File → Print… opens the system's print dialog (printer, copies, pages,
   two-sided, grayscale, Save as PDF). xfig's PostScript, made with its print
   settings, becomes a PDF (Ghostscript) that goes to CUPS, so the
-  print stays vector. File → Print Options… is xfig's print panel, for
+  print stays vector. Without Ghostscript, Qt prints fig2dev's SVG.
+  File → Print Options… is xfig's print panel, for
   magnification, layers, grid, background and multiple pages;
 - object edit dialog; export dialog;
 - all 2561 figures in `old/` compared with X11 xfig (`tests/compare`):

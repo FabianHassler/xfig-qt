@@ -7,7 +7,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport Svg)
+# PDF pictures without Ghostscript
+find_package(Qt6 QUIET COMPONENTS Pdf)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
 pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
@@ -48,6 +50,12 @@ target_compile_definitions(xfigcore PRIVATE $<$<COMPILE_LANGUAGE:C>:exit=xq_exit
 # fig2dev gets PATH too, to find Ghostscript (shim/spawn_env.c)
 set_source_files_properties(core/u_spawn.c PROPERTIES
 	COMPILE_DEFINITIONS posix_spawnp=xq_posix_spawnp)
+# without Ghostscript, PDF and bitmaps are exported from fig2dev's SVG, and
+# PDF pictures are rendered with QtPdf (ui/bridge.c, ui/svgout.cpp)
+set_source_files_properties(core/w_export.c PROPERTIES
+	COMPILE_DEFINITIONS print_export=xq_print_export)
+set_source_files_properties(core/f_readeps.c PROPERTIES
+	COMPILE_DEFINITIONS gs_bitmap=xq_gs_bitmap)
 # xfig's main() becomes xfig_main(), called by the Qt main()
 set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE
@@ -70,12 +78,21 @@ qt_add_executable(xfig MACOSX_BUNDLE
 	ui/xaw.cpp
 	ui/testscript.cpp
 	ui/print.cpp
+	ui/svgout.cpp
 	ui/bridge.c)
 target_include_directories(xfig PRIVATE platform ui)
 # running from the build directory, xfig's data is data/ in the sources
 target_compile_definitions(xfig PRIVATE
 	XFIGQT_SOURCE_DATADIR="${CMAKE_SOURCE_DIR}/data")
-target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport
+	Qt6::Svg)
+if(Qt6Pdf_FOUND)
+	target_compile_definitions(xfig PRIVATE XQ_HAVE_QTPDF)
+	target_link_libraries(xfig PRIVATE Qt6::Pdf)
+else()
+	message(STATUS "QtPdf not found: without Ghostscript, PDF pictures "
+		"show no preview")
+endif()
 # printing goes to CUPS (ui/print.cpp)
 find_library(CUPS_LIBRARY cups REQUIRED)
 target_link_libraries(xfig PRIVATE ${CUPS_LIBRARY})

@@ -6,7 +6,8 @@
  * magnification, paper, orientation, layers) to a file, and the print
  * dialog chooses printer, copies and pages.  Ghostscript makes a PDF of it,
  * which goes to CUPS (recent macOS no longer takes PostScript), or to the
- * file "Save as PDF" chose: it stays vector.
+ * file "Save as PDF" chose: it stays vector.  Without Ghostscript, Qt
+ * prints fig2dev's SVG (svgout.cpp).
  */
 /* before xq.h: the X11 shim defines GrayScale, a QPrinter enum value */
 #include <QtPrintSupport/QPrintDialog>
@@ -14,6 +15,7 @@
 #include <cups/cups.h>
 
 #include "print.h"
+#include "svgout.h"
 #include "bridge.h"
 #undef GrayScale
 
@@ -42,7 +44,9 @@ find_tool(const QStringList &names)
 QString
 find_ghostscript()
 {
-	static QString gs = find_tool({"gs"});
+	/* XFIGQT_NO_GHOSTSCRIPT: try how it is without */
+	static QString gs = qEnvironmentVariableIsSet("XFIGQT_NO_GHOSTSCRIPT") ?
+			QString() : find_tool({"gs"});
 	return gs;
 }
 
@@ -117,9 +121,40 @@ pdf_to_cups(const QString &pdf, const QPrinter &printer, QString *err)
 	return true;
 }
 
+/* without Ghostscript: fig2dev's SVG, drawn by Qt on the printer */
+static bool
+print_svg(QPrinter &printer, QString *err)
+{
+	char svg[PATH_MAX];
+	xq_svg_job job;
+	if (xqb_print_svg(svg, &job) != 0)
+		return false;
+	bool ok = svg_print(job, printer, err);
+	QFile::remove(QFile::decodeName(svg));
+	return ok;
+}
+
 bool
 print_figure_with(QPrinter &printer, QWidget *parent)
 {
+	if (find_ghostscript().isEmpty()) {
+		QString err;
+		bool pdf = printer.outputFormat() == QPrinter::PdfFormat &&
+				!printer.outputFileName().isEmpty();
+		bool ok = print_svg(printer, &err);
+		if (ok)
+			xqb_message((pdf ? QString("Saved \"%1\" as %2").arg(
+					figure_title(), printer.outputFileName()) :
+				QString("Sent \"%1\" to printer \"%2\"").arg(
+					figure_title(), printer.printerName()))
+				.toLocal8Bit().constData());
+		else if (!err.isEmpty() && parent)
+			QMessageBox::warning(parent, "Print", err);
+		else if (!err.isEmpty())
+			qWarning("%s", qPrintable(err));
+		return ok;
+	}
+
 	QTemporaryDir tmp;
 	if (!tmp.isValid())
 		return false;

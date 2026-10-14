@@ -14,7 +14,7 @@ class XfigQt < Formula
   depends_on "fig2dev"
   depends_on "fontconfig"
   depends_on "freetype"
-  depends_on "ghostscript"
+  depends_on "ghostscript" => :recommended
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "libtiff"
@@ -35,6 +35,10 @@ class XfigQt < Formula
     <<~EOS
       To start Xfig from the Finder or Launchpad, link it into Applications:
         ln -sf #{opt_prefix}/xfig.app /Applications/Xfig.app
+
+      Ghostscript is recommended: with it, PDF, bitmap export and printing
+      are made from fig2dev's PostScript, and EPS pictures get a preview.
+      Without it (--without-ghostscript), they are drawn from fig2dev's SVG.
     EOS
   end
 

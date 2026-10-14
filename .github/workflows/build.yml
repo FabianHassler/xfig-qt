@@ -35,7 +35,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config \
-            qt6-base-dev qt6-qpa-plugins libfontconfig-dev libfreetype-dev \
+            qt6-base-dev qt6-qpa-plugins qt6-svg-dev qt6-pdf-dev \
+            libfontconfig-dev libfreetype-dev \
             libpng-dev libjpeg-dev libtiff-dev libcups2-dev \
             fig2dev ghostscript fonts-urw-base35
       - name: Build

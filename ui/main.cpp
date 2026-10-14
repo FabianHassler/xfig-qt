@@ -121,8 +121,8 @@ main(int argc, char **argv)
 	xqb_set_native_print([] { print_figure(MainWindow::instance()); });
 	/* EPS and PDF pictures: an app started from the Finder has no
 	   Homebrew in its PATH */
-	if (!find_ghostscript().isEmpty())
-		xq_set_resource("ghostscript", QFile::encodeName(find_ghostscript()));
+	/* without Ghostscript, none: PDF and bitmaps are then made from SVG */
+	xq_set_resource("ghostscript", QFile::encodeName(find_ghostscript()));
 #ifdef Q_OS_MACOS
 	/* fig2dev and Ghostscript, when started from the Finder */
 	QByteArray path = qgetenv("PATH");

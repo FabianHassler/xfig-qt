@@ -4,7 +4,8 @@ xfig-qt builds with CMake on macOS and Linux. It needs:
 
 | What | Why |
 |---|---|
-| Qt 6 (Widgets, PrintSupport), 6.4 or newer | the user interface |
+| Qt 6 (Widgets, PrintSupport, Svg), 6.4 or newer | the user interface; Svg for PDF and bitmaps without Ghostscript |
+| QtPdf (optional) | previews of PDF pictures without Ghostscript |
 | fontconfig, FreeType | xfig's text, with the same font matching as X11 xfig |
 | libpng, libjpeg, libtiff (optional) | picture objects |
 | CUPS | printing |
@@ -15,11 +16,18 @@ and, to run fully:
 | What | Why |
 |---|---|
 | **fig2dev** (3.2.9 or newer) | export and printing, as in X11 xfig |
-| **Ghostscript** (`gs`) | printing, and the previews of EPS and PDF pictures |
+| **Ghostscript** (`gs`), recommended | PDF and bitmap export and printing made from fig2dev's PostScript; previews of EPS pictures |
 | the URW base-35 fonts | xfig's PostScript fonts (Times, Helvetica, ...); macOS has suitable fonts |
 
-Without fig2dev and Ghostscript xfig-qt still draws, edits, loads and
-saves figures.
+Without fig2dev xfig-qt still draws, edits, loads and saves figures.
+
+Without Ghostscript, PDF, PNG, JPEG, TIFF, PPM, XBM and XPM export and
+printing work too: Qt draws fig2dev's SVG output instead of Ghostscript
+turning its PostScript into PDF or pixels. fig2dev's SVG and PostScript do
+not quite agree, so Ghostscript remains the better choice; the message
+panel says when the SVG route was taken. Without Ghostscript there is no
+GIF, PCX or combined PDF/LaTeX export, and EPS pictures show as a frame.
+PDF pictures still get their preview, from QtPdf.
 
 After installing, `xfig figure.fig` starts it; xfig's command line options
 work (`-zoom 2`, `-metric`, `-startfontsize 14`, `-xrm 'Fig.resource:
@@ -34,7 +42,7 @@ brew install fabianhassler/tap/xfig-qt
 ```
 
 This builds xfig-qt and installs `xfig` and the app `xfig.app`; fig2dev and
-Ghostscript come along. To start it from the Finder or Launchpad:
+Ghostscript come along (`--without-ghostscript` leaves Ghostscript out). To start it from the Finder or Launchpad:
 
 ```sh
 ln -sf "$(brew --prefix xfig-qt)/xfig.app" /Applications/Xfig.app
@@ -47,7 +55,7 @@ it, `brew unlink xfig` first (or uninstall it).
 
 ```sh
 brew install cmake pkgconf qt fontconfig freetype libpng jpeg-turbo libtiff \
-	fig2dev ghostscript
+	fig2dev ghostscript		# ghostscript: recommended
 git clone https://github.com/FabianHassler/xfig-qt.git
 cd xfig-qt
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
@@ -72,14 +80,15 @@ Debian, Ubuntu (24.04 or newer):
 
 ```sh
 sudo apt install build-essential cmake pkg-config qt6-base-dev qt6-qpa-plugins \
-	libfontconfig-dev libfreetype-dev libpng-dev libjpeg-dev libtiff-dev \
-	libcups2-dev fig2dev ghostscript fonts-urw-base35
+	qt6-svg-dev qt6-pdf-dev libfontconfig-dev libfreetype-dev libpng-dev \
+	libjpeg-dev libtiff-dev libcups2-dev fig2dev ghostscript fonts-urw-base35
 ```
 
 Fedora:
 
 ```sh
-sudo dnf install gcc gcc-c++ cmake pkgconf qt6-qtbase-devel fontconfig-devel \
+sudo dnf install gcc gcc-c++ cmake pkgconf qt6-qtbase-devel qt6-qtsvg-devel \
+	qt6-qtpdf-devel fontconfig-devel \
 	freetype-devel libpng-devel libjpeg-turbo-devel libtiff-devel cups-devel \
 	fig2dev ghostscript urw-base35-fonts
 ```
@@ -87,7 +96,7 @@ sudo dnf install gcc gcc-c++ cmake pkgconf qt6-qtbase-devel fontconfig-devel \
 Arch Linux:
 
 ```sh
-sudo pacman -S base-devel cmake pkgconf qt6-base fontconfig freetype2 libpng \
+sudo pacman -S base-devel cmake pkgconf qt6-base qt6-svg qt6-webengine fontconfig freetype2 libpng \
 	libjpeg-turbo libtiff libcups fig2dev ghostscript gsfonts
 ```
 
