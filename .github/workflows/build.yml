@@ -1,0 +1,83 @@
+# Build xfig-qt on macOS, Linux and Windows, and run the headless smoke test.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: brew install qt fontconfig freetype libpng jpeg-turbo libtiff fig2dev ghostscript
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+          cmake --build build -j4
+      - name: Smoke test
+        run: tests/smoke_test.sh build/xfig.app/Contents/MacOS/xfig
+      - name: Install
+        run: cmake --install build --prefix "$PWD/inst"
+
+  linux:
+    # Ubuntu's own Qt (6.4): what Linux distributions ship, not the newest
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config \
+            qt6-base-dev qt6-qpa-plugins libfontconfig-dev libfreetype-dev \
+            libpng-dev libjpeg-dev libtiff-dev libcups2-dev \
+            fig2dev ghostscript fonts-urw-base35
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j4
+      - name: Smoke test
+        run: tests/smoke_test.sh build/xfig
+      - name: Install
+        run: cmake --install build --prefix "$PWD/inst"
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-fontconfig
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-libtiff
+            mingw-w64-ucrt-x86_64-libgnurx
+            mingw-w64-ucrt-x86_64-libiconv
+            mingw-w64-ucrt-x86_64-ghostscript
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Smoke test
+        # no fig2dev package in MSYS2 yet: printing is not tested here
+        run: tests/smoke_test.sh build/xfig.exe --no-print
+      - name: Install
+        run: cmake --install build --prefix "$PWD/inst"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xfig-qt-windows-build
+          path: inst
