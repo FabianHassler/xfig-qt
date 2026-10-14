@@ -6,7 +6,7 @@ class XfigQt < Formula
   homepage "https://github.com/FabianHassler/xfig-qt"
   url "https://github.com/FabianHassler/xfig-qt/archive/refs/tags/v3.2.9a-qt1.tar.gz"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
-  license "Xfig"
+  license all_of: ["Xfig", "MIT"]
   head "https://github.com/FabianHassler/xfig-qt.git", branch: "main"
 
   depends_on "cmake" => :build
