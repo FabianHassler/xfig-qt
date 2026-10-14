@@ -49,7 +49,7 @@ endif()
 target_compile_options(xfigcore PRIVATE -w)
 # xfig ends with exit() from deep inside callbacks; xq_exit() ends the
 # process without running Qt's teardown in the middle of event handling
-target_compile_definitions(xfigcore PRIVATE exit=xq_exit)
+target_compile_definitions(xfigcore PRIVATE $<$<COMPILE_LANGUAGE:C>:exit=xq_exit>)
 # xfig's main() becomes xfig_main(), called by the Qt main()
 set_source_files_properties(core/main.c PROPERTIES COMPILE_DEFINITIONS main=xfig_main)
 target_link_libraries(xfigcore PUBLIC PkgConfig::FONTCONFIG PkgConfig::FREETYPE

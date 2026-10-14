@@ -20,7 +20,10 @@
 #include <windows.h>
 
 #include "u_spawn.h"
-#include "w_msgpanel.h"
+
+/* w_msgpanel.h, without xfig's resources.h: its RECT clashes with
+   windows.h */
+extern void	file_msg(char *format, ...);
 
 #define PIPE_SIZE	65536
 

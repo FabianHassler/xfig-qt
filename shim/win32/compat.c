@@ -1,7 +1,9 @@
 /*
  * compat.c - the POSIX functions of xq_win32.h, for Windows.
  */
+#include <direct.h>
 #include <errno.h>
+#include <stdint.h>
 #include <io.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +14,38 @@
 #include "sys/wait.h"
 
 #undef access
+#undef getcwd
+
+char *
+xq_getcwd(char *buf, size_t size)
+{
+	return _getcwd(buf, (int)size);
+}
+
+/* F_GETFL reports no flags, F_SETFL changes nothing */
+int
+fcntl(int fd, int cmd, ...)
+{
+	(void)fd;
+	(void)cmd;
+	return 0;
+}
+
+/* drand48() and random(): a 48-bit linear congruential generator, as in
+   POSIX's drand48() */
+static uint64_t	seed48 = 0x1234ABCD330EULL;
+
+static uint64_t
+next48(void)
+{
+	seed48 = (seed48 * 0x5DEECE66DULL + 0xB) & ((1ULL << 48) - 1);
+	return seed48;
+}
+
+double drand48(void) { return (double)next48() / (double)(1ULL << 48); }
+void srand48(long seed) { seed48 = ((uint64_t)(uint32_t)seed << 16) | 0x330E; }
+long random(void) { return (long)(next48() >> 17); }
+void srandom(unsigned int seed) { srand48((long)seed); }
 
 int
 xq_access(const char *path, int mode)

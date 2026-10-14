@@ -10,10 +10,18 @@
 #ifndef XQ_WIN32_H
 #define XQ_WIN32_H
 
+/* the system headers first: the macros below rename some of their
+   functions in xfig's code only */
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <direct.h>
+#include <fcntl.h>
+#include <io.h>
 #include <signal.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +55,23 @@ typedef char	*caddr_t;
 /* access(): Windows has no execute permission bit; X_OK fails there */
 #define access	xq_access
 int	xq_access(const char *path, int mode);
+
+/* xfig declares getcwd(char *, size_t), Windows getcwd(char *, int) */
+#define getcwd	xq_getcwd
+char	*xq_getcwd(char *buf, size_t size);
+
+/* xfig sets O_APPEND on its print batch file, written in order anyway */
+#ifndef F_GETFL
+#define F_GETFL	3
+#define F_SETFL	4
+#endif
+int	fcntl(int fd, int cmd, ...);
+#define fsync	_commit
+
+double	drand48(void);
+void	srand48(long seed);
+long	random(void);
+void	srandom(unsigned int seed);
 
 pid_t	fork(void);
 int	kill(pid_t pid, int sig);
