@@ -8,6 +8,7 @@
  */
 #include "mainwindow.h"
 #include "bridge.h"
+#include "print.h"
 
 MainWindow *MainWindow::s_instance = nullptr;
 
@@ -160,6 +161,18 @@ MainWindow::fillMenu(QMenu *qm, int index)
 		}
 		if (text == "Save As...") {
 			connect(a, &QAction::triggered, this, &MainWindow::saveFileAs);
+			continue;
+		}
+		if (text == "Print...") {
+			/* the macOS print dialog; xfig's print panel keeps
+			   its options (magnification, layers, grid...) */
+			connect(a, &QAction::triggered, this, [this] { print_figure(this); });
+			QAction *o = qm->addAction("Print Options...");
+			o->setEnabled(XtIsSensitive(e));
+			o->setMenuRole(QAction::NoRole);
+			connect(o, &QAction::triggered, this, [e] {
+				xq_call_callbacks(e, XtNcallback, nullptr);
+			});
 			continue;
 		}
 		if (text == "Save") {

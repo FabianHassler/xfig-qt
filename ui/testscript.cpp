@@ -15,10 +15,15 @@
  *	snapwin <file.png>		save the topmost other window (dialog)
  *	save <file.fig>
  *	open|merge|saveas <file.fig>	File menu, as after the file dialog
+ *	printpdf <file.pdf>		print, as after "Save as PDF" in the dialog
  *	quit
  */
+/* before xq.h: the X11 shim defines GrayScale, a QPrinter enum value */
+#include <QtPrintSupport/QPrinter>
+
 #include "mainwindow.h"
 #include "bridge.h"
+#include "print.h"
 
 static QWidget *
 canvas()
@@ -197,6 +202,12 @@ run(QStringList lines)
 			MainWindow::instance()->mergePath(a.value(1));
 		} else if (cmd == "saveas") {
 			MainWindow::instance()->saveAsPath(a.value(1));
+		} else if (cmd == "printpdf") {
+			/* only to a file: a test must not reach a real printer */
+			QPrinter printer(QPrinter::HighResolution);
+			printer.setOutputFormat(QPrinter::PdfFormat);
+			printer.setOutputFileName(a.value(1));
+			print_figure_with(printer, nullptr);
 		} else if (cmd == "close") {
 			/* like the window's close button */
 			QTimer::singleShot(0, [] { MainWindow::instance()->close(); });

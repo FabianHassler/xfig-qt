@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
 pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
@@ -60,9 +60,11 @@ qt_add_executable(xfig MACOSX_BUNDLE
 	ui/mainwindow.cpp
 	ui/xaw.cpp
 	ui/testscript.cpp
+	ui/print.cpp
 	ui/bridge.c)
 target_include_directories(xfig PRIVATE platform ui)
-target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets)
+# printing goes to CUPS, the macOS print system
+target_link_libraries(xfig PRIVATE xfigcore Qt6::Widgets Qt6::PrintSupport cups)
 set_target_properties(xfig PROPERTIES
 	MACOSX_BUNDLE_BUNDLE_NAME "Xfig"
 	MACOSX_BUNDLE_GUI_IDENTIFIER "org.xfig.xfig"

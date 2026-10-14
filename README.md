@@ -15,7 +15,8 @@ build/xfig.app/Contents/MacOS/xfig figure.fig
 
 xfig's command-line options still work (`-zoom 2`, `-metric`,
 `-startfontsize 14`, `-splash`, `-xrm 'Fig.resource: value'`, …).
-fig2dev must be on the `PATH` for export and printing, as with X11 xfig.
+fig2dev must be on the `PATH` for export and printing, as with X11 xfig,
+and Ghostscript (`ps2pdf`) for printing.
 
 ## How it works
 
@@ -99,6 +100,11 @@ Verified with test scripts:
   for a figure without a name too. Before a figure is replaced, a macOS
   alert offers Save, Don't Save or Cancel. xfig's file panel (with its
   figure preview) is still there through xfig's keyboard accelerators;
+- File → Print… opens the macOS print dialog (printer, copies, pages,
+  two-sided, grayscale, Save as PDF). xfig's PostScript, made with its print
+  settings, becomes a PDF (Ghostscript's `ps2pdf`) that goes to CUPS, so the
+  print stays vector. File → Print Options… is xfig's print panel, for
+  magnification, layers, grid, background and multiple pages;
 - object edit dialog; export dialog;
 - all 2561 figures in `old/` compared with X11 xfig (`tests/compare`):
   2556 render the same. The rest are small: dashes along arcs (X draws
@@ -113,9 +119,5 @@ Known gaps (next steps):
 - no input method support for composed non-ASCII text input yet;
 - the Export panel's file name through the macOS save dialog (File →
   Open…, Merge…, Save As… already use the macOS file dialog);
-- native printing: fig2dev makes a PDF, the macOS print dialog
-  (`QPrintDialog`) chooses printer, copies and pages, and the PDF goes to
-  the printer through CUPS, so it stays vector. Today xfig pipes to `lp` or
-  `lpr` with a typed printer name and options;
 - not yet done: a modern toolbar/dock look for the mode and indicator
   panels, trackpad pinch zoom, and a bundled fig2dev and fonts in the `.app`.

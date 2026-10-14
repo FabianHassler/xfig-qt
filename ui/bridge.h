@@ -25,6 +25,8 @@ int	xqb_open(const char *path);
 int	xqb_merge(const char *path);
 int	xqb_save_as(const char *path);
 const char *xqb_current_path(void);
+int	xqb_print_to_file(const char *file);
+void	xqb_message(const char *msg);
 const char *xqb_current_file(void);
 const char *xqb_current_dir(void);
 int	xqb_figure_modified(void);

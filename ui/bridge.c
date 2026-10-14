@@ -3,9 +3,12 @@
  */
 #include "bridge.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "resources.h"
 #include "object.h"
@@ -26,6 +29,7 @@
 #include "f_save.h"
 #include "w_cmdpanel.h"
 #include "e_compound.h"
+#include "u_print.h"
 #include "paintop.h"
 
 extern Widget	tool, canvas_sw, topruler_sw, sideruler_sw, msg_panel, mousefun,
@@ -196,6 +200,32 @@ xqb_save_as(const char *path)
 	update_cur_filename(name);
 	reset_modifiedflag();
 	return 0;
+}
+
+/* ------------------------------------------------- the native print dialog */
+
+/* xfig's print output, PostScript from fig2dev with the print settings
+   (magnification, paper, orientation, layers...), written to file */
+int
+xqb_print_to_file(const char *file)
+{
+	int	fd, stat;
+
+	if (check_action_on() || emptyfigure_msg("Print"))
+		return -1;
+	if ((fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0) {
+		file_msg("Cannot write print file %s: %s", file, strerror(errno));
+		return -1;
+	}
+	stat = print_to_batchfile(fd, "", "");
+	close(fd);
+	return stat ? -1 : 0;
+}
+
+void
+xqb_message(const char *msg)
+{
+	put_msg("%s", msg);
 }
 
 /* the current figure's absolute path, "" if it has no name yet */
