@@ -35,6 +35,8 @@ extern "C" {
 #define SIGPIPE		13
 #endif
 
+typedef char	*caddr_t;
+
 /* a macro: some MinGW versions have these types */
 #define uid_t	int
 #define gid_t	int

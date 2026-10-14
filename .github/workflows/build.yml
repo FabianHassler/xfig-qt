@@ -70,7 +70,7 @@ jobs:
       - name: Build
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
+          cmake --build build -- -k 0
       - name: Smoke test
         # no fig2dev package in MSYS2 yet: printing is not tested here
         run: tests/smoke_test.sh build/xfig.exe --no-print
