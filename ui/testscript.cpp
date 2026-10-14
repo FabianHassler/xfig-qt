@@ -6,6 +6,7 @@
  *	click <x> <y> [button]		click on the canvas (button 1, 2 or 3)
  *	drag <x1> <y1> <x2> <y2> [button]
  *	move <x> <y>
+ *	enter | leave			the pointer enters or leaves the canvas
  *	key <text>			type text on the canvas ("\r" etc. allowed)
  *	widget <name> [index]		click the index-th xfig widget of that name
  *	menu <menu> <entry prefix>	trigger a menu entry
@@ -114,6 +115,13 @@ run(QStringList lines)
 			for (int i = 1; i <= 10; ++i)
 				mouse(c, QEvent::MouseMove, p1 + (p2 - p1) * i / 10.0, b, b);
 			mouse(c, QEvent::MouseButtonRelease, p2, b, Qt::NoButton);
+		} else if (cmd == "enter") {
+			QPointF p(10, 10);
+			QEnterEvent e(p, p, canvas()->mapToGlobal(p));
+			QApplication::sendEvent(canvas(), &e);
+		} else if (cmd == "leave") {
+			QEvent e(QEvent::Leave);
+			QApplication::sendEvent(canvas(), &e);
 		} else if (cmd == "key") {
 			QString text = line.mid(4).replace("\\r", "\r").replace("\\n", "\n");
 			for (QChar ch : text) {

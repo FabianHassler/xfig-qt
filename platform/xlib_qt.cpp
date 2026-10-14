@@ -1204,11 +1204,26 @@ XQueryFont(Display *, XID fid)
 
 extern "C" int XFreeFont(Display *, XFontStruct *fs) { free(fs); return 1; }
 
+/*
+ * The width of a string.  xfig erases text by drawing spaces over it with
+ * XDrawImageString (the mouse buttons panel, the color buttons), which
+ * works with X's fixed-width fonts.  Its interface fonts are proportional
+ * here, where spaces are narrow: a string of spaces only is as wide as in
+ * a fixed font, one character cell each.
+ */
+static int
+text_width(const QFontMetrics &m, const QString &str)
+{
+	if (!str.isEmpty() && str.count(QLatin1Char(' ')) == str.size())
+		return str.size() * qMax(m.averageCharWidth(),
+				m.horizontalAdvance(QLatin1Char('n')));
+	return m.horizontalAdvance(str);
+}
+
 extern "C" int
 XTextWidth(XFontStruct *fs, const char *s, int n)
 {
-	return QFontMetrics(core_font(fs->fid)).horizontalAdvance(
-			QString::fromLatin1(s, n));
+	return text_width(QFontMetrics(core_font(fs->fid)), QString::fromLatin1(s, n));
 }
 
 extern "C" int
@@ -1243,7 +1258,7 @@ draw_string(Drawable d, GC gc, int x, int y, const char *s, int n, bool image)
 		QString str = QString::fromLatin1(s, n);
 		if (image) {
 			QFontMetrics m(f);
-			p.fillRect(QRect(x, y - m.ascent(), m.horizontalAdvance(str),
+			p.fillRect(QRect(x, y - m.ascent(), text_width(m, str),
 				m.height()), QColor::fromRgb(pix2rgb(gc->v.background)));
 		}
 		p.setPen(QColor::fromRgb(pix2rgb(gc->v.foreground)));
