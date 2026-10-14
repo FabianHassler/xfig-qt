@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<title>Internationalization Support</title>
+</head>
+
+<body>
+<a href="contents.html"><img src="images/xfig-title.png"
+  alt="XFIG Users Manual" border="0"></a>
+
+<hr>
+
+<h1>Internationalization (Using Japanese, Korean, etc.)</h1>
+
+<b>Xfig</b> and <b>fig2dev</b> can produce PostScript, EPS, PDF and bitmap files
+that contain Japanese or Korean text. For this to work, <b>fig2dev</b> must be
+invoked from the command line. Also, it is necessary to have a postscript
+preamble file, e.g., <tt>japanese.ps</tt>, in its default location, usually
+<tt>/usr/local/share/fig2dev/i18n</tt> or <tt>/usr/share/fig2dev/i18n</tt>.
+Such preamble files might also be put into the location pointed to by the
+<tt>FIG2DEV_LIBDIR</tt> environment variable.
+The file <tt>japanese.ps</tt> and <tt>korean.ps</tt> define composite fonts to
+use with Times-Roman and Times-Roman Bold.
+
+<hr>
+
+<ul>
+<li><a href="#commandline">Command Line</a>
+<li><a href="#input-text">Entering Text</a>
+<li><a href="#customize">Customization</a>
+<li><a href="#printer-font">Changing Fonts on PostScript Output</a>
+<li><a href="#resource">Setting Resources</a>
+<li><a href="#notes">Notes</a>
+</ul>
+
+<hr>
+
+
+<h2><a name="commandline">Command Line</a></h2>
+
+From <b>xfig</b>, save your drawing using <i>Save As&hellip;</i> from the
+<a href="main_menus.html#file-menu">File menu</a>.
+<b>Xfig</b> invariably writes utf-8 encoded fig files.
+You must convert the file to an EUC-encoding, e.g., with iconv<br>
+<tt>iconv -f UTF-8 -t EUC-JP drawing_utf8.fig &gt;drawing.fig</tt><br>
+Use <b>fig2dev</b> to convert the resulting, euc-encoded fig file (drawing.fig)
+to the desired output format. You must work in the corresponding EUC-locale
+(setting  the environment
+variable <tt>LC_CTYPE</tt>, or simply <tt>LANG</tt>), and you must specify
+the options <tt>-E</tt> for input encoding
+and <tt>-j</tt> to enable composite fonts. For instance, to convert to EPS,<br>
+<tt>LC_CTYPE=ja_JP.eucJP fig2dev -L eps -E EUC-JP -j drawing.fig drawing.eps</tt><br>
+or to a PNG,<br>
+<tt>LC_CTYPE=ja_JP.eucJP fig2dev -L png -E EUC-JP -j drawing.fig drawing.png</tt><br>
+
+<h2><a name="input-text">Entering Text</a></h2>
+
+Using this internationalization facility,
+you may enter text in Japanese or some another languages
+(henceforce, call &quot;international text&quot;)
+with the <a href="drawing.html#text">TEXT</a> facility.
+When entering international text,
+&quot;<i>Times-Roman</i>&quot; or &quot;<i>Times-Bold</i>&quot;
+(may be displayed as &quot;<i>Times-Roman + Mincho</i>&quot;
+and &quot;<i>Times-Bold + Gothic</i>&quot; in Japanese environment)
+must be selected as <a href="attributes.html#text-font">TEXT FONT</a>.
+<p>
+Input of international text will be started
+by typing a key to switch the input mode
+when it is ready to input text from the keyboard
+in <a href="drawing.html#text">TEXT</a> mode.
+It depend on the environment as to which key will switch the input mode,
+but keys such as <tt>Shift-SPACE</tt>, <tt>Control-SPACE</tt>,
+<tt>Control-O</tt>, or <tt>Control-\</tt> may be used in many cases.
+Operations for conversion also depend on the environment,
+but will be the same as other applications which use the environment.
+<p>
+The <i>input style</i> may be selected from
+<i>Off the Spot</i>, <i>Over the Spot</i>, and <i>Root</i>.
+The <i>input style</i> to be used
+may be selected with the <tt>inputStyle</tt> resource
+or the <tt>-inputStyle</tt> option.
+For example, <tt>xfig -inputStyle OverTheSpot</tt>
+will select <i>Over the Spot</i> as the input style.
+<p>
+<dl>
+<dt><b>Off the Spot</b>:
+<dd>The text under conversion will be displayed at the bottom of the canvas.
+<p>
+<blockquote>
+  <img src="images/xim-off-the-spot.png" alt="[Input Style: Off-the-Spot]">
+</blockquote>
+
+<p>
+<dt><b>Over the Spot</b>:
+<dd>The text under conversion will be displayed at the position
+where it will end up.
+But the display may be somewhat strange
+because it will be displayed with a different font.
+Also, it may lead to somewhat unusual behavior,
+or the display on the canvas may get confused.
+<p>
+<blockquote>
+  <img src="images/xim-over-the-spot.png" alt="[Input Style: Over-the-Spot]">
+</blockquote>
+
+<p>
+<dt><b>Root</b>:
+<dd>The text under conversion will displayed in a separate window.
+<p>
+<blockquote>
+  <img src="images/xim-root.png" alt="[Input Style: Root]">
+</blockquote>
+</dl>
+
+<h2><a name="printer-font">Changing Fonts on PostScript Output</a></h2>
+
+Fonts used when generating PostScript output are specified
+in the files like <tt>japanese.ps</tt> in <b>fig2dev</b> package,
+and it is possible to change them by modifying those files.
+
+<h3>Japanese</h3>
+
+By default, <tt>Ryumin-Light</tt> and <tt>GothicBBB-Medium</tt>
+will used if they are available,
+and <tt>HeiseiMin-W3</tt> and <tt>HeiseiKakuGo-W5</tt> otherwise.
+<p>
+Locale name can one of <tt>japanese</tt>, <tt>ja</tt>, <tt>ja_JP</tt>,
+<tt>ja_JP.ujis</tt>, <tt>ja_JP.eucJP</tt> and <tt>ja_JP.EUC</tt>.
+
+<h3>Korean</h3>
+
+By default, <tt>Munhwa-Regular</tt> and <tt>MunhwaGothic-Bold</tt>
+will used if they are available,
+and <tt>HLaTeX-Myoungjo-Regular</tt> and <tt>HLaTeX-Gothic-Regular</tt> otherwise.
+<p>
+Locale name can one of <tt>korean</tt>, <tt>ko</tt>, <tt>ko_KR</tt>,
+<tt>ko_KR.ujis</tt>, <tt>ko_KR.eucKR</tt> and <tt>ko_KR.EUC</tt>.
+
+<h3>Another Languages</h3>
+
+Because configuration file for languages other than Japanese and Korean
+is not prepared,
+you must make the file for the language and available fonts.
+<p>
+The file must installed into the directory
+specified when <b>fig2dev</b> is installed.
+The filename must locale name followed by &quot;<tt>.ps</tt>&quot;.
+For example, if locale name is <tt>zh_CN.eucCN</tt>,
+the filename must <tt>zh_CN.eucCN.ps</tt>.
+
+<h2><a name="resource">Setting Resources</a></h2>
+
+X Window System has mechanism to load locale-specific resource file
+to support internationalization (localization) of applications.
+With this mechanism, it is possible to make suitable settings for the language
+without specifying options when executing the application.
+To make <b>xfig</b> works properly for multiple languages,
+it may be necessary to make suitable settings using this mechanism.
+<p>
+In the default configuration of X11R6, if there is a resource file like
+<tt>/usr/X11R6/lib/X11/<i>locale</i>/app-defaults/Fig</tt>
+(here, <tt><i>locale</i></tt> is locale name or its &quot;language part&quot;),
+it will be loaded instead of
+<tt>/usr/X11R6/lib/X11/app-defaults/Fig</tt>.
+Therefore, if you wrote setting for Japanese environment in
+<tt>/usr/X11R6/lib/X11/ja/app-defaults/Fig</tt>,
+the setting for Japanese environment will be used when
+environment variable <tt>LANG</tt> is set to <tt>ja_JP.eucJP</tt> or so,
+and default setting in <tt>/usr/X11R6/lib/X11/app-defaults/Fig</tt>
+will be used otherwise.
+
+<h2><a name="notes">Notes</a></h2>
+
+<ul>
+<li>When entering international text, you must select
+&quot;<i>Times-Roman</i>&quot; or &quot;<i>Times-Bold</i>&quot;
+(may be displayed as &quot;<i>Times-Roman + Mincho</i>&quot;
+and &quot;<i>Times-Bold + Gothic</i>&quot; in Japanese environment)
+as the <a href="attributes.html#text-font">TEXT FONT</a>.
+If any other font is selected,
+<a href="drawing.html#compose-char">Latin-1 characters</a>
+will be available as in normal <b>xfig</b>.
+
+<p>
+<li>In Japanese environments,
+text may include only ASCII and JIS-X-0208 characters.
+If the environment supports it,
+it may be possible to enter characters
+of JIS-X-0201 <i>kana</i> characters
+or JIS-X-0212 (supplement <i>kanji</i>),
+but <b>fig2dev</b> will not accept those characters.
+</ul>
+
+<p>
+<hr>
+
+[ <a href="contents.html">Contents</a> |
+ <a href="introduction.html">Introduction</a> |
+ <a href="authors.html">Credits</a> ]
+
+</body>
+</html>

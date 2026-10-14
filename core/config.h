@@ -45,16 +45,17 @@
 #define HAVE_PNG 1
 #define HAVE_JPEG 1
 #define CACHE_SIZE_LIMIT 20000
-#ifndef XFIGLIBDIR
-#define XFIGLIBDIR ""
+/* xfig's data (CompKeyDB, doc/, Libraries/) is found at run time, next to
+   the program wherever it is installed (xq_data_path() in ui/main.cpp) */
+#ifdef __cplusplus
+extern "C"
 #endif
-#ifndef XFIGDOCDIR
-#define XFIGDOCDIR ""
-#endif
+const char *xq_data_path(const char *sub);
+#define XFIGLIBDIR xq_data_path("")
+#define XFIGDOCDIR xq_data_path("doc")
 #define FIG2DEV_DIR ""
 #define PRINTCAP "/etc/printcap"
 #define REG_NOERROR 0
-#ifndef OBJLIBDIR
+/* set at start-up as the library_dir resource, also xq_data_path() */
 #define OBJLIBDIR ""
-#endif
 #endif

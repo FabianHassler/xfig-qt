@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<title>LaTeX and Xfig</title>
+</head>
+
+<body>
+<div><a href="contents.html"><img src="images/xfig-title.png"
+  alt="XFIG Users Manual" border=0></a></div>
+
+<hr>
+
+<h1>LaTeX and Xfig</h1>
+<dl>
+<dd><img src="images/redballdot.png" alt="-">
+<a href="#LaTeX">How to Import Xfig Figures in Your LaTeX Files</a></dd>
+<dd><img src="images/redballdot.png" alt="-">
+<a href="#picsize">Changing the Size of Pictures</a></dd>
+<dd><img src="images/redballdot.png" alt="-">
+<a href="#Metapost">Xfig and Metapost</a>
+   by Josselin Mouette (jmouette@ens-lyon.fr)</dd>
+<!--<dd><img src="images/redballdot.png" alt="-">
+<a href="#misc">Miscellaneous Notes</a>-->
+</dl>
+
+<hr>
+<a name="LaTeX">
+<h2>How to Import Xfig Figures in Your LaTeX Files</h2></a>
+
+Xfig can generate output to many different formats which TeX or LaTeX can
+read.
+The final document is produced by one of the following methods, depending on the
+export language.
+
+<dl>
+<dt><img src="images/blueballdot.png" align=bottom alt="-">
+<b>LaTeX picture, LaTeX with pict2e macros, TeX/LaTeX with tikz macros,
+LaTeX with pstricks macros, LaTeX with epic/eepic/eepicemu macros:</b></dt>
+<dd>The file generated from xfig is directly included, e.g.,
+<tt>\input{fig1.tikz}</tt>, or the entire file contents is copied into your
+TeX/LaTeX file. Therefore, the TeX/LaTeX document can contain all text and
+graphics. Usually, it will be necessary to load a macro package to
+enable TeX or LaTeX to process the file. Text that should be interpreted by
+TeX/LaTeX must have the <i>TeX Flag</i> set to <i>ON</i>, see
+<a href="attributes.html#text-flags">TEXT FLAGS</a>. Otherwise, characters
+special to TeX will be quoted and, e.g.,
+<tt>$x$</tt> will print as $x$, not <i>x</i>.
+
+<dl>
+    <dt><tt>latex</tt></dt>
+    <dd>Include the generated file with, e.g., <tt>\input{fig1.latex}</tt>
+	into your document, or simply embed it. No packages are required, but
+	the capabilities of the <tt>latex</tt> output language are quite
+	limited.</dd>
+    <dt><tt>tikz</tt></dt>
+    <dd><tt>\input{fig1.tikz}</tt> or embed the contents of the generated
+	tikz file into the TeX-document. In the preamble of a LaTeX document,
+	use<br>
+	<tt>\usepackage{tikz, graphics} &nbsp;% graphics, if the figure contains
+		embedded images<br>
+	\usetikzlibrary{arrows.meta, % if the figure contains arrow-tips<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	bending, &nbsp;&nbsp;&nbsp; %
+	arrow tips on arcs are "bent," i.e., deformed a bit<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	patterns &nbsp;&nbsp;&nbsp; %
+	if the figure contains pattern fills<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</tt><br>
+	The export to TeX/LaTeX with tikz macros supports all capabilites of
+	xfig. LaTeX and Postscript fonts can be freely used and even mixed in
+	the same figure, and the typesetting capabilities of TeX can be
+	used.</dd>
+    <dt><tt>pict2e</tt></dt>
+	<dd>Embed or <tt>\input</tt> the generated file into your LaTeX
+	document. In the preamble include<br>
+	<tt>\usepackage{pict2e,<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	color, &nbsp;&nbsp;&nbsp;% if the figure contains color<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	graphics &nbsp;% if the figure contains embedded images<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	}</tt><br>
+	Export to LaTeX with pict2e macros does not support pattern fills. All
+	other features of a xfig drawing are reproduced. LaTeX and Postscript
+	fonts can be used for text in the xfig drawing.</dd>
+    <dt><tt>pstricks</tt></dt>
+	<dd><tt>\usepackage{pstricks,<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	pstricks-add, % for complex line styles and hollow PSTricks arrows (-R 1
+option)<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	graphicx &nbsp;&nbsp;&nbsp;&nbsp;
+	% if the figure contains embedded images<br>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	}</tt><br>
+	The pstricks output matches the quality of the Postscript driver. Text
+	is rendered black, but LaTeX font color-changing code can be embedded in
+	the text.</dd>
+    <dt><tt>epic</tt></dt>
+	<dd><tt>\usepackage{epic}</tt></dd>
+    <dt><tt>eepic</tt></dt>
+	<dd><tt>\usepackage{epic,eepic} % order matters!</tt></dd>
+</dl></dd>
+
+<dt><img src="images/blueballdot.png" align=bottom alt="-">
+<b>EPS, PDF, EPS and PDF:</b></dt>
+<dd>Export the figure from xfig to eps or pdf (or both) and import the
+file with <tt>\includegraphics</tt> into your document.
+Write<br>
+<tt>&nbsp;&nbsp;&nbsp; \usepackage{graphics}</tt><br>
+into the preamble and include the drawing with, e.g.,
+<tt>\includegraphics{fig1.eps}</tt> or <tt>\includegraphics{fig1}</tt>.
+This method supports all capabilities of xfig, but only Postscript fonts are
+used to render text.
+To make use of the fonts and of the typesetting possibilities of LaTeX, one
+could use the <tt>psfrag</tt> package to replace text strings in an eps file
+with code rendered by LaTeX.</dd><br>
+
+<dt><img src="images/blueballdot.png" align=bottom alt="-">
+<b>Combined PS/LaTeX, Combined PDF/LaTeX, Combinded PS/PDF/LaTeX:</b></dt>
+<dd>Export the figure to two files or even three files, partially to eps or pdf
+or to both, and partially to a LaTeX file, and include the LaTeX file in your
+document.
+The LaTeX file contains the text and includes either the eps or pdf file which
+contains the graphics.
+Text marked with the <i>TeX Flag</i> set to <i>ON</i> is rendered by
+LaTeX and superimposed over the included graphics.
+In the preamble, put<br>
+<tt>&nbsp;&nbsp;&nbsp;
+\usepackage{graphics,color} % color, if the text is colored</tt><br>
+Write <tt>\input{fig1.pstex_t}</tt> for latex + eps,
+<tt>\input{fig1.pdf_t}</tt> for latex + pdf, or <tt>\input{fig1.pspdftex}</tt>
+for latex + eps or pdf at the location where the drawing should appear.
+The export to Combined PS/PDF/LaTeX, latex + eps or pdf, can be processed by any
+LaTeX engine.</dd>
+</dl>
+
+A variant of the second method above is to
+<dl>
+<dt><img src="images/blueballdot.png" align=bottom alt="-">
+<b>create a stand-alone tex file and import the generated EPS or PDF:</b></dt>
+<dd>The tex-file cannot be exported directly from xfig, but you must invoke
+<tt>fig2dev</tt> from the command line with the <tt>-P</tt> option of the tikz
+or pict2e driver. Save your drawing, and invoke <tt>fig2dev</tt> on the saved
+fig-file, e.g., for the <tt>tikz</tt> driver,<br><tt>
+&nbsp;&nbsp;&nbsp; $ fig2dev -L tikz fig1.fig fig1.tex<br>
+&nbsp;&nbsp;&nbsp; $ pdflatex fig1.tex</tt><br>
+Include the final <tt>fig1.pdf</tt> with <tt>\includegraphics{fig1}</tt> into
+your LaTeX document.
+This tex-file is processed by LaTeX to create a pdf or eps graphics that can be
+included into your LaTeX document. The advantage of this method above the direct
+export to pdf or eps is that text can be rendered with LaTeX- and Postscript
+fonts, and TeX/LaTeX expressions are interpreted in text on which the <i>TeX
+flag</i> is set to <i>On</i>.
+</dd>
+</dl>
+
+<p>
+To set the <a href="attributes.html#text-flags">TEXT FLAG</a> <i>TeX Flag</i> to
+<i>ON</i> and use LaTeX-fonts for all text, invoke xfig with the
+commandline<br><tt>
+&nbsp;&nbsp;&nbsp; $ xfig -specialtext -latexfonts -startlatexFont default</tt><br>
+To make the above permanently and start all drawings with LaTeX fonts and the
+<i>TeX flag</i> set to <i>ON</i>, put the following in your X-resources file.
+This is probably the file <tt>.Xresources</tt> in your home directory.<tt><br>
+&nbsp;&nbsp;&nbsp; Fig.latexfonts: true<br>
+&nbsp;&nbsp;&nbsp; Fig.specialtext: true</tt>
+</p>
+
+<a name="picsize">
+<h3>Changing the Size of Pictures</h3></a>
+
+If possible, try to not scale drawings at all. Different line thicknesses
+should be a avoided, similarly to avoiding differently sized letters in
+text. The rulers at the top and at the side, and the magnification setting
+in the lower left corner of the xfig window may aid at producing the
+graphics at the right size.
+
+<p>
+If scaling cannot be avoided, the commands <tt>\scalebox</tt> and
+<tt>\resizebox</tt> from the graphics package can be used,
+<pre>
+\scalebox{1.5}{\input{fig1.pstex_t}}	% \scalebox{factor}{object}
+\resizebox{10cm}{!}{\input{fig1.latex}}	% \resizebox{width}{height}{object}
+</pre>
+An exclamation mark in place of one of the dimensions retains the aspect
+ratio of the object.
+
+<p>
+To set the width of tikz-drawings produced by xfig, you can use
+<pre>
+\newlength\XFigwidth\XFigwidth84mm
+\newlength\XFigheight\XFigheight56mm
+</pre>
+before input'ing your figure.
+This will scale the coordinates of the drawing, but not line widths or
+text. If only one of the two dimensions is given, the
+figure retains its aspect ratio. To render subsequent figures in their
+original size, both dimensions must be undefined or set to zero,
+<pre>\XFigwidth0pt \XFigheight0pt</pre>
+</p>
+
+<hr>
+<a name="Metapost">
+<h2>Xfig and Metapost</h2></a>
+written by Josselin Mouette (jmouette@ens-lyon.fr)
+
+<ol>
+<li>METAPOST
+   <br>
+   There is nothing special to do in xfig to use MetaPost. All the
+   text you type will be treated as plain TeX code - note, this will
+   be not compiled within your document, so you don't have acess to
+   packages like AMS-TeX, neither have you to your macros.
+   In xfig, export your file with the MetaPost filter, it creates
+   <tt>foo.mp</tt>.  Then, type mpost foo.mp, it will generate <tt>foo.0</tt>
+   (or <tt>foo.1</tt>, sometimes).
+   In your document, put this in the preamble:
+    <pre>
+    \input supp-pdf.tex
+    \usepackage[pdftex]{graphicx}
+    </pre>
+   And to include your figure :
+    <pre>
+    \convertMPtoPDF{foo.0}{1}{1}
+    </pre>
+   That's it. Quite simple, and you can put a bit TeX inside.
+   <br>
+   Pros: Can be easily included in a dual-output (pdf/dvi) file: for
+	 including it as PS, just put a <tt>\includegraphics{foo.0}</tt> in the
+	 document.
+   <br>
+   Cons: Not adapted to big formulas, as AMS-LaTeX is not
+	 accessible. Long phrases may look bad as well, if your
+	 document is not in English (babel cannot be used).
+
+<p>
+<li>MULTI-METAPOST
+   <br>
+   This method is designed to be used in PDF presentations. Using the
+   <tt>\pause</tt> command, it will display step by step the layers of your
+   figure as you click on the button, which can look very nice (and
+   can even be useful sometimes).  All that have been told about
+   MetaPost inclusions is true, but there are a few extra things to
+   know:
+   <p>
+   <ol type="A">
+   <li>
+   When creating your figure, be careful with the depth of your
+   objects. When exporting your figure in the MultiMetaPost format,
+   transfig will treat the consecutive depth levels where is an object
+   as a single layer, for example:
+   <pre>
+   Circle at depth 51 \__first displayed layer
+   Text at depth 50   /
+   *** Nothing at depth 49
+   Square at depth 48 \
+   Text at depth 48    &gt; Second displayed layer
+   Curve at depth 47  /
+   ... and so on.
+   </pre></p>
+
+   <li>
+   After exporting, mpost <tt>foo.mmp</tt> will create a set of files named
+   <tt>foo.0, foo.1...</tt>
+   To include them in the document, you will need the mpmulti.sty
+   provided with the latest version of PPower4 (still in Beta stage at
+   the time of writing).
+   The preamble of your document should look like this:
+    <pre>
+    \input supp-pdf.tex
+    \usepackage[pdftex]{graphicx}
+    \usepackage{pause,mpmulti}
+    </pre>
+   And to include your animation, just put:
+    <pre>
+    \multiinclude{foo}
+    </pre>
+   You can adjust it to a defined size by using:
+    <pre>
+    \multiinclude[graphics={width=5cm}]{foo}
+    </pre>
+   Compile your document, then ppower4 it. Nifty, isn't it?
+   <br>
+   Pros: The only way to insert automatically animations. Benefit of
+	 the existing xfig's depth system.
+   <br>
+   Cons: Are there any?
+
+  </ol>
+</ol>
+<hr>
+
+[ <a href="contents.html">Contents</a> |
+ <a href="introduction.html">Introduction</a> |
+ <a href="authors.html">Credits</a> ]
+
+  </body>
+
+</html>

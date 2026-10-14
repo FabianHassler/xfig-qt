@@ -9,6 +9,42 @@
 
 void run_test_script(const QString &path);
 
+/* xfig's data directory (CompKeyDB, doc/, Libraries/): XFIGQT_DATADIR, in
+   the macOS app bundle, ../share/xfig-qt from the program (installed on
+   Linux, Windows or by Homebrew), or data/ in the source tree */
+static QString
+data_dir()
+{
+	static QString dir;
+	if (!dir.isNull())
+		return dir;
+	QString app = QCoreApplication::applicationDirPath();
+	QStringList candidates = {
+		qEnvironmentVariable("XFIGQT_DATADIR"),
+		app + "/../Resources",
+		app + "/../share/xfig-qt",
+		app + "/share/xfig-qt",
+		QStringLiteral(XFIGQT_SOURCE_DATADIR),
+	};
+	for (const QString &c : candidates)
+		if (!c.isEmpty() && QFileInfo::exists(c + "/CompKeyDB"))
+			return dir = QDir(c).absolutePath();
+	qWarning("xfig data directory (with CompKeyDB) not found");
+	return dir = QString("");
+}
+
+extern "C" const char *
+xq_data_path(const char *sub)
+{
+	static QHash<QByteArray, QByteArray> paths;
+	QByteArray &p = paths[sub];
+	if (p.isEmpty()) {
+		QString d = data_dir();
+		p = QFile::encodeName(*sub ? d + "/" + QString::fromUtf8(sub) : d);
+	}
+	return p.constData();
+}
+
 static void
 created_hook(Widget w, const char *name, const char *wclass)
 {
@@ -78,6 +114,7 @@ main(int argc, char **argv)
 
 	/* defaults that differ from the X11 version (the command line wins) */
 	xq_set_resource("splash", "False");
+	xq_set_resource("library_dir", xq_data_path("Libraries"));
 
 	/* xfig parses the command line itself; it does not return */
 	return xfig_main(argc, argv);

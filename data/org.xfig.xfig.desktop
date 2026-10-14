@@ -1,0 +1,11 @@
+[Desktop Entry]
+Exec=xfig %f
+InitialPreference=2
+MimeType=application/x-xfig;
+Name=xfig
+Comment=Facility for Interactive Generation of figures
+Icon=xfig
+Terminal=false
+Type=Application
+Categories=Graphics;
+Keywords=vector;graphics;figure;drawing;

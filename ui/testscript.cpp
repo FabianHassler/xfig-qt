@@ -16,6 +16,7 @@
  *	save <file.fig>
  *	open|merge|saveas <file.fig>	File menu, as after the file dialog
  *	printpdf <file.pdf>		print, as after "Save as PDF" in the dialog
+ *	datadir				print the data directory in use
  *	quit
  */
 /* before xq.h: the X11 shim defines GrayScale, a QPrinter enum value */
@@ -24,6 +25,8 @@
 #include "mainwindow.h"
 #include "bridge.h"
 #include "print.h"
+
+extern "C" const char *xq_data_path(const char *sub);
 
 static QWidget *
 canvas()
@@ -202,6 +205,8 @@ run(QStringList lines)
 			MainWindow::instance()->mergePath(a.value(1));
 		} else if (cmd == "saveas") {
 			MainWindow::instance()->saveAsPath(a.value(1));
+		} else if (cmd == "datadir") {
+			qWarning("datadir %s", xq_data_path(""));
 		} else if (cmd == "printpdf") {
 			/* only to a file: a test must not reach a real printer */
 			QPrinter printer(QPrinter::HighResolution);
