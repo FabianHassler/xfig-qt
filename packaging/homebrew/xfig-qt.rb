@@ -5,7 +5,7 @@ class XfigQt < Formula
   desc "Facility for Interactive Generation of figures (xfig) on Qt, without X11"
   homepage "https://github.com/FabianHassler/xfig-qt"
   url "https://github.com/FabianHassler/xfig-qt/archive/refs/tags/v1.0.0-rc1.tar.gz"
-  sha256 "dfd07e8f4675099afab6b7c798babde18ce37e489ed0b98072b1fb461f381fb5"
+  sha256 "e491c090a7816c4473f114e0d30494f53126d514f1eea0962bcd17f46261594f"
   license all_of: ["Xfig", "MIT"]
   head "https://github.com/FabianHassler/xfig-qt.git", branch: "main"
 
