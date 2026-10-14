@@ -11,6 +11,7 @@
  *	menu <menu> <entry prefix>	trigger a menu entry
  *	wait <ms>
  *	snap <file.png>			save the main window
+ *	snapcanvas <file.png>		save the drawing canvas only
  *	snapwin <file.png>		save the topmost other window (dialog)
  *	save <file.fig>
  *	quit
@@ -141,6 +142,8 @@ run(QStringList lines)
 				qWarning("no menu entry %s / %s", qPrintable(m), qPrintable(entry));
 		} else if (cmd == "snap") {
 			MainWindow::instance()->grab().save(a.value(1));
+		} else if (cmd == "snapcanvas") {
+			canvas()->grab().toImage().save(a.value(1));
 		} else if (cmd == "snapwin") {
 			/* snapwin <file> [xfig shell name] */
 			for (QWidget *w : QApplication::topLevelWidgets()) {

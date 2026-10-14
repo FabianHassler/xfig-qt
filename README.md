@@ -63,6 +63,25 @@ save out.fig
 quit
 ```
 
+### Comparing with X11 xfig
+
+`tests/compare/compare.py` opens `.fig` files in the original X11 xfig
+(Homebrew's `xfig`, on private `Xvfb` displays from XQuartz) and in
+xfig-qt, and compares the two canvases pixel by pixel, allowing a
+one-pixel shift. It needs XQuartz, `ffmpeg`, and Python with numpy and
+Pillow.
+
+```sh
+tests/compare/compare.py -j 8 ../old                  # every figure (~2500)
+tests/compare/compare.py --sample 200 ../old          # a random sample
+tests/compare/compare.py some.fig other.fig
+```
+
+The report goes to `build/compare/index.html` (old, Qt and a red
+difference image per figure, worst first) and `results.csv`. The score
+is the fraction of inked pixels that differ; the exit status is 1 if any
+figure scores above `--fail` (default 0.05).
+
 For an AddressSanitizer build, configure with
 `-DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address`
 and run with `ASAN_OPTIONS=allow_user_segv_handler=0`.
