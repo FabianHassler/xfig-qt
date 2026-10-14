@@ -1958,3 +1958,20 @@ XRaiseWindow(Display *d, Window win)
 		p->activateWindow();
 	return 1;
 }
+
+/* xfig hands keys the canvas does not use to the mode panel this way,
+   where its accelerators choose the mode */
+extern "C" int
+XPutBackEvent(Display *d, XEvent *e)
+{
+	(void)d;
+	XEvent ev = *e;
+	QTimer::singleShot(0, [ev]() mutable {
+		Window win = ev.type == KeyPress || ev.type == KeyRelease ?
+			ev.xkey.window : ev.type == ButtonPress ||
+			ev.type == ButtonRelease ? ev.xbutton.window : 0;
+		if (XawPeer *p = XawPeer::forWindow(win))
+			p->sendEvent(ev);
+	});
+	return 1;
+}

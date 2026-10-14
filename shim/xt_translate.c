@@ -462,3 +462,79 @@ xq_dispatch_event(Widget w, XEvent *ev)
 		}
 	return 0;
 }
+
+/* ----------------------------------------------------------- accelerators */
+
+/*
+ * A widget's accelerators (XtNaccelerators) act on the widgets they are
+ * installed on (XtInstallAccelerators): an event there that its own
+ * translations do not take runs the actions on the source widget.
+ */
+typedef struct Accel {
+	Widget		dest, src;
+	Translation	*first;
+	struct Accel	*next;
+} Accel;
+
+static Accel *accels = NULL;
+
+void
+XtInstallAccelerators(Widget dest, Widget src)
+{
+	XtArgVal v;
+	if (!dest || !src || !xq_res(src, XtNaccelerators, &v) || !v)
+		return;
+	for (Accel *a = accels; a; a = a->next)
+		if (a->dest == dest && a->src == src)
+			return;
+	Accel *a = calloc(1, sizeof *a);
+	a->dest = dest;
+	a->src = src;
+	a->first = copy_list(((XtAccelerators)v)->first);
+	a->next = accels;
+	accels = a;
+}
+
+void
+XtInstallAllAccelerators(Widget dest, Widget top)
+{
+	if (!top)
+		return;
+	XtInstallAccelerators(dest, top);
+	for (int i = 0; i < xq_widget_num_children(top); ++i)
+		XtInstallAllAccelerators(dest, xq_widget_child(top, i));
+}
+
+/* a destroyed widget's accelerators go */
+void
+xq_forget_accelerators(Widget w)
+{
+	for (Accel **p = &accels; *p; ) {
+		if ((*p)->dest == w || (*p)->src == w) {
+			Accel *a = *p;
+			*p = a->next;
+			free(a);
+		} else {
+			p = &(*p)->next;
+		}
+	}
+}
+
+int
+xq_dispatch_accelerators(Widget w, XEvent *ev)
+{
+	for (Accel *a = accels; a; a = a->next) {
+		if (a->dest != w || xq_widget_destroyed(a->src))
+			continue;
+		for (Translation *t = a->first; t; t = t->next) {
+			if (!matches(t, ev))
+				continue;
+			Widget src = a->src;
+			for (int i = 0; i < t->nact; ++i)
+				xq_call_action(src, t->act[i].name, ev, t->act[i].params,
+						t->act[i].nparams);
+			return 1;
+		}
+	}
+	return 0;
+}

@@ -81,6 +81,8 @@ int	xq_has_callbacks(Widget w, const char *name);
 int	xq_call_callbacks(Widget w, const char *name, XtPointer call_data);
 int	xq_widget_event(Widget w, XEvent *ev);	/* handlers + translations */
 int	xq_dispatch_event(Widget w, XEvent *ev);	/* translations only */
+int	xq_dispatch_accelerators(Widget w, XEvent *ev);
+void	xq_forget_accelerators(Widget w);
 int	xq_call_action(Widget w, const char *name, XEvent *ev, String *params, Cardinal n);
 void	xq_set_translations(Widget w, XtTranslations t);
 /* the click count of the event being dispatched (double clicks) */

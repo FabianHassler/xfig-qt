@@ -504,6 +504,7 @@ destroy(Widget w)
 	}
 	xq_call_callbacks(w, XtNdestroyCallback, NULL);
 	w->destroyed = True;
+	xq_forget_accelerators(w);
 	if (xq_hooks.destroyed)
 		xq_hooks.destroyed(w);
 	w->peer = NULL;
@@ -750,8 +751,16 @@ xq_widget_event(Widget w, XEvent *ev)
 		procs[i](w, closures[i], ev, &cont);
 		handled = 1;
 	}
-	if (!w->destroyed && xq_dispatch_event(w, ev))
+	/* the translations, then the accelerators installed here */
+	int translated = !w->destroyed && (xq_dispatch_event(w, ev) ||
+			xq_dispatch_accelerators(w, ev));
+	if (translated)
 		handled = 1;
+	/* a key event nothing here takes goes to the parent, as with X
+	   (Escape on a dialog's button reaches the dialog's accelerators) */
+	if (!handled && (ev->type == KeyPress || ev->type == KeyRelease) &&
+			w->parent && !w->is_popup)
+		return xq_widget_event(w->parent, ev);
 	return handled;
 }
 
@@ -930,6 +939,18 @@ add_widget_res(const char *pattern, const char *value)
 	widget_res = r;
 }
 
+/* a pattern component names the widget, or its class ("Command"); Xt
+   calls the AsciiText class "Text" */
+static const char *res_classes[64];
+
+static Boolean
+part_is(const char *part, const char **names, int i)
+{
+	const char *c = res_classes[i];
+	return !strcmp(part, names[i]) || (c && (!strcmp(part, c) ||
+			(!strcmp(c, "AsciiText") && !strcmp(part, "Text"))));
+}
+
 /* does pattern component pi on match names[ni..] */
 static Boolean
 res_match(const WidgetRes *r, int pi, const char **names, int nn, int ni)
@@ -937,10 +958,10 @@ res_match(const WidgetRes *r, int pi, const char **names, int nn, int ni)
 	if (pi == r->n)
 		return ni == nn;
 	if (r->bind[pi] == '.')
-		return ni < nn && !strcmp(r->part[pi], names[ni]) &&
+		return ni < nn && part_is(r->part[pi], names, ni) &&
 			res_match(r, pi + 1, names, nn, ni + 1);
 	for (int k = ni; k < nn; ++k)
-		if (!strcmp(r->part[pi], names[k]) &&
+		if (part_is(r->part[pi], names, k) &&
 				res_match(r, pi + 1, names, nn, k + 1))
 			return True;
 	return False;
@@ -955,8 +976,12 @@ apply_widget_res(Widget w)
 	for (Widget p = w; p && p->parent && n < 62; p = p->parent)
 		++n;
 	int k = n;
-	for (Widget p = w; p && p->parent && k > 0; p = p->parent)
+	for (Widget p = w; p && p->parent && k > 0; p = p->parent) {
 		names[--k] = p->name;
+		res_classes[k] = p->wclass ? p->wclass->name : NULL;
+	}
+	res_classes[n] = NULL;
+	Boolean translated = False;
 	for (WidgetRes *r = widget_res; r; r = r->next) {
 		const char *res = r->part[r->n - 1];
 		XtArgVal v;
@@ -965,6 +990,25 @@ apply_widget_res(Widget w)
 			continue;
 		Arg a;
 		a.name = (String)res;
+		if (!strcmp(res, XtNtranslations)) {
+			/* the first (latest given) pattern only, as Xt takes one */
+			if (translated)
+				continue;
+			translated = True;
+			XtTranslations t = XtParseTranslationTable(r->value);
+			if (!strncmp(r->value, "#augment", 8))
+				XtAugmentTranslations(w, t);
+			else if (!strncmp(r->value, "#replace", 8) || r->value[0] != '#')
+				xq_set_translations(w, t);
+			else
+				XtOverrideTranslations(w, t);
+			continue;
+		}
+		if (!strcmp(res, XtNaccelerators)) {
+			a.value = (XtArgVal)XtParseAcceleratorTable(r->value);
+			store_args(w, &a, 1);
+			continue;
+		}
 		if (!strcmp(res, XtNbackground) || !strcmp(res, XtNforeground) ||
 				!strcmp(res, XtNborderColor)) {
 			XColor c;
@@ -979,12 +1023,84 @@ apply_widget_res(Widget w)
 	}
 }
 
+/*
+ * xfig's app-defaults file (data/app-defaults/Fig): its translations and
+ * accelerators, the keyboard and wheel bindings.  Its other resources
+ * (X fonts, colors, sizes) are X11's business.  Left out: the bindings of
+ * xfig's menu buttons (native menus here), the Athena text bindings (Qt's
+ * text fields do that) and the application's catch-all key translation.
+ */
+const char	*xq_data_path(const char *sub);
+
+static void
+load_app_defaults(void)
+{
+	FILE *f = fopen(xq_data_path("app-defaults/Fig"), "r");
+	if (!f)
+		return;
+	char line[1024];
+	char *entry = NULL;
+	size_t len = 0;
+	for (;;) {
+		char *l = fgets(line, sizeof line, f);
+		size_t n = l ? strlen(l) : 0;
+		if (l && n && l[n - 1] == '\n')
+			l[--n] = '\0';
+		Boolean more = l && n && l[n - 1] == '\\';
+		if (more)
+			l[--n] = '\0';
+		if (l && (entry || (l[0] != '!' && l[0] != '#'))) {
+			entry = realloc(entry, len + n + 1);
+			memcpy(entry + len, l, n + 1);
+			len += n;
+		}
+		if (more && l)
+			continue;
+		if (entry) {
+			/* "\n" in a value is a newline */
+			char *d = entry;
+			for (char *s = entry; *s; ++s) {
+				if (s[0] == '\\' && s[1] == 'n') {
+					*d++ = '\n';
+					++s;
+				} else {
+					*d++ = *s;
+				}
+			}
+			*d = '\0';
+			char *colon = strchr(entry, ':');
+			if (colon) {
+				*colon = '\0';
+				char *spec = entry, *value = colon + 1;
+				while (*value == ' ' || *value == '\t')
+					++value;
+				for (char *e = colon; e > spec && (e[-1] == ' ' || e[-1] == '\t'); )
+					*--e = '\0';
+				size_t sl = strlen(spec);
+				Boolean bindings = (sl > 12 && !strcmp(spec + sl - 12, "translations")) ||
+					(sl > 12 && !strcmp(spec + sl - 12, "accelerators"));
+				if (bindings && strcmp(spec, "Fig.translations") &&
+						strcmp(spec, "*Text*translations") &&
+						!strstr(spec, "*commands*"))
+					add_widget_res(!strncmp(spec, "Fig", 3) ? spec + 3 : spec, value);
+			}
+			free(entry);
+			entry = NULL;
+			len = 0;
+		}
+		if (!l)
+			break;
+	}
+	fclose(f);
+}
+
 Widget
 XtAppInitialize(XtAppContext *app, const char *cl, XrmOptionDescList o, Cardinal no,
 		int *argc, String *argv, String *fb, ArgList a, Cardinal k)
 {
 	(void)cl;
-	/* the fallback resources: "Fig.name: value" for the application,
+	load_app_defaults();
+	/* the fallback resources (they win over the app-defaults file): "Fig.name: value" for the application,
 	   patterns of widget names for widgets; the command line wins */
 	for (; fb && *fb; ++fb) {
 		const char *colon = strchr(*fb, ':');
@@ -1079,8 +1195,6 @@ XtSetKeyboardFocus(Widget tree, Widget w)
 
 XtAppContext XtWidgetToApplicationContext(Widget w) { (void)w; return (XtAppContext)1; }
 void XtGetActionList(WidgetClass c, XtActionList *l, Cardinal *n) { (void)c; *l = NULL; *n = 0; }
-void XtInstallAccelerators(Widget a, Widget b) { (void)a; (void)b; }
-void XtInstallAllAccelerators(Widget a, Widget b) { (void)a; (void)b; }
 Boolean XtDispatchEvent(XEvent *e) { (void)e; return False; }
 void XtWarning(const char *m) { fprintf(stderr, "xfig: %s\n", m); }
 void

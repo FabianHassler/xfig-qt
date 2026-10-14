@@ -133,9 +133,12 @@ run(QStringList lines)
 			for (QChar ch : text) {
 				int key = ch == '\r' ? Qt::Key_Return : ch.toUpper().unicode();
 				QString t = ch == '\r' ? QString("\r") : QString(ch);
-				QKeyEvent press(qtev::KeyPressEvent, key, Qt::NoModifier, t);
+				/* capitals come with Shift, as from a keyboard */
+				Qt::KeyboardModifiers mods = ch.isUpper() ? Qt::ShiftModifier :
+						Qt::NoModifier;
+				QKeyEvent press(qtev::KeyPressEvent, key, mods, t);
 				QApplication::sendEvent(canvas(), &press);
-				QKeyEvent release(qtev::KeyReleaseEvent, key, Qt::NoModifier, t);
+				QKeyEvent release(qtev::KeyReleaseEvent, key, mods, t);
 				QApplication::sendEvent(canvas(), &release);
 			}
 		} else if (cmd == "widget") {
@@ -178,6 +181,48 @@ run(QStringList lines)
 					hit = m->actions().first();
 				return hit;
 			};
+		} else if (cmd == "keyto") {
+			/* keyto <widget name> <index> Escape|Return|<char>: a key
+			   on that widget (its Qt focus proxy, if any) */
+			int index = int(num(2));
+			QByteArray n = a.value(1).toLatin1();
+			Widget w = nullptr;
+			for (Widget root : xqb_root_widgets())
+				if ((w = find_widget(root, n.constData(), index)))
+					break;
+			XawPeer *p = XawPeer::of(w);
+			QString k = a.value(3);
+			int key = k == "Escape" ? Qt::Key_Escape : k == "Return" ? Qt::Key_Return :
+				k.isEmpty() ? 0 : k.at(0).toUpper().unicode();
+			QString t = k == "Escape" ? QString("\x1b") : k == "Return" ? QString("\r") : k;
+			QWidget *target = p ? (p->focusProxy() ? p->focusProxy() : p) : nullptr;
+			if (target && key) {
+				QKeyEvent press(qtev::KeyPressEvent, key, Qt::NoModifier, t);
+				QApplication::sendEvent(target, &press);
+				QKeyEvent release(qtev::KeyReleaseEvent, key, Qt::NoModifier, t);
+				QApplication::sendEvent(target, &release);
+			} else {
+				qWarning("keyto: no widget %s", n.constData());
+			}
+		} else if (cmd == "tooltips") {
+			/* every widget with an xfig info balloon, and its tooltip */
+			std::function<void(Widget)> walk = [&](Widget w) {
+				const char *tip = (const char *)xq_res_default(w, XtNtip, 0);
+				if (tip || xq_res_default(w, "xqTip", 0)) {
+					XawPeer *p = XawPeer::of(w);
+					printf("tip %s [%s] on=%d shown=%s visible=%d: %s\n",
+						xq_widget_name(w), xq_widget_class(w),
+						int(xq_res_default(w, "xqTip", 0)),
+						p ? (p->toolTip().isEmpty() ? "no" : "yes") : "nopeer",
+						p ? int(p->isVisibleTo(p->window())) : 0,
+						tip ? tip : "(none)");
+				}
+				for (int i = 0; i < xq_widget_num_children(w); ++i)
+					walk(xq_widget_child(w, i));
+			};
+			for (Widget root : xqb_root_widgets())
+				walk(root);
+			fflush(stdout);
 		} else if (cmd == "tooltip") {
 			/* tooltip <widget name> [index]: print its tooltip */
 			int index = int(num(2));

@@ -134,7 +134,7 @@ configure_file(data/doc/xfig.man.in xfig.1 @ONLY)
 configure_file(data/doc/xfig_man.html.in xfig_man.html @ONLY)
 
 install(FILES data/CompKeyDB DESTINATION ${DATADIR})
-install(DIRECTORY data/Libraries data/doc DESTINATION ${DATADIR}
+install(DIRECTORY data/Libraries data/doc data/app-defaults DESTINATION ${DATADIR}
 	PATTERN "*.in" EXCLUDE)
 install(FILES ${CMAKE_BINARY_DIR}/xfig_man.html DESTINATION ${DATADIR}/doc)
 if(UNIX AND NOT APPLE)

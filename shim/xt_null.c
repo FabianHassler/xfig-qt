@@ -184,7 +184,6 @@ int XSetWindowColormap(Display *d, Window w, Colormap c) { (void)d; (void)w; (vo
 int XSetSubwindowMode(Display *d, GC g, int m) { (void)d; (void)g; (void)m; return 1; }
 char *XSetLocaleModifiers(const char *m) { (void)m; return ""; }
 Status XSendEvent(Display *d, Window w, Bool b, long m, XEvent *e) { (void)d; (void)w; (void)b; (void)m; (void)e; return 1; }
-int XPutBackEvent(Display *d, XEvent *e) { (void)d; (void)e; return 1; }
 Bool XFilterEvent(XEvent *e, Window w) { (void)e; (void)w; return False; }
 XPixmapFormatValues *
 XListPixmapFormats(Display *d, int *n)
