@@ -1005,6 +1005,22 @@ XAllocColorCells(Display *, Colormap, Bool, unsigned long *, unsigned,
 	return 0;	/* TrueColor: no read/write cells */
 }
 
+/* a color name, lower case without blanks.  Qt knows the SVG/CSS names,
+   which agree with X11's rgb.txt except for these. */
+static QColor
+x11_named_color(const QString &n)
+{
+	if (n == "gray" || n == "grey")
+		return QColor(190, 190, 190);
+	if (n == "green")
+		return QColor(0, 255, 0);
+	if (n == "maroon")
+		return QColor(176, 48, 96);
+	if (n == "purple")
+		return QColor(160, 32, 240);
+	return QColor::fromString(n);
+}
+
 static bool
 parse_x11_color(const char *spec, QColor &c)
 {
@@ -1044,14 +1060,14 @@ parse_x11_color(const char *spec, QColor &c)
 	static const double shade[] = {1.0, 1.0, 0.932, 0.804, 0.545};
 	if (!n.isEmpty() && n.back().isDigit()) {
 		int k = n.back().digitValue();
-		QColor base = QColor::fromString(n.chopped(1));
+		QColor base = x11_named_color(n.chopped(1));
 		if (base.isValid() && k >= 1 && k <= 4) {
 			c = QColor(base.red() * shade[k], base.green() * shade[k],
 					base.blue() * shade[k]);
 			return true;
 		}
 	}
-	c = QColor::fromString(n);
+	c = x11_named_color(n);
 	return c.isValid();
 }
 
