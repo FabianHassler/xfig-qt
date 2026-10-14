@@ -3,6 +3,11 @@
 This runs the original xfig 3.2.9a source code (in `core/`) as a native Qt 6
 application on macOS and Linux. No X server, Xlib, Xt or Xaw is needed.
 
+xfig is the work of Supoj Sutanthavibul, Brian V. Smith, Paul King, Thomas
+Loimer and many contributors ([xfig on SourceForge](https://sourceforge.net/projects/mcj/));
+xfig-qt only adds the layer that runs it on Qt. See
+[Credits and license](#credits-and-license).
+
 ## Installation
 
 On macOS with Homebrew:
@@ -128,7 +133,30 @@ Known gaps (next steps):
 - xfig's layouts use fixed pixel sizes made for X11 fonts. Labels and
   buttons grow to fit their text, but some dialogs may still look cramped;
 - no input method support for composed non-ASCII text input yet;
-- the Export panel's file name through the system's save dialog (File →
-  Open…, Merge…, Save As… already use the system's file dialog);
 - not yet done: a modern toolbar/dock look for the mode and indicator
   panels, trackpad pinch zoom, and a bundled fig2dev and fonts in the `.app`.
+
+## Credits and license
+
+xfig-qt runs xfig 3.2.9a, the Facility for Interactive Generation of
+figures:
+
+- **xfig** — Copyright (c) 1985–1988 Supoj Sutanthavibul, parts (c)
+  1989–2015 Brian V. Smith, (c) 1991 Paul King, (c) 2016–2024 Thomas
+  Loimer, and the contributors named in the source files. Home:
+  <https://sourceforge.net/projects/mcj/>. `core/` is xfig's `src/`
+  unchanged (only `core/config.h` is the port's); `data/` holds xfig's
+  object libraries, documentation, compose key database and app-defaults.
+  They are under xfig's license, quoted in [LICENSE](LICENSE).
+- Parts of xfig come from xdir (Digital Equipment Corporation),
+  xcoloredit (Richard Hesketh), David Koblas and Torsten Martinsen, and the
+  Independent JPEG Group, under their own notices, which LICENSE
+  reproduces. This software is based in part on the work of the
+  Independent JPEG Group.
+- The object libraries were drawn by many artists, credited in
+  `data/Libraries/README` and the libraries' own README and LICENSE files.
+- The Qt port (`platform/`, `shim/`, `ui/`, `tests/`, `packaging/`, the
+  build files) is MIT licensed, Copyright (c) 2026 Fabian Hassler.
+
+Export and printing use fig2dev and, if installed, Ghostscript; Qt,
+fig2dev and Ghostscript are separate programs under their own licenses.

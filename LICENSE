@@ -1,7 +1,27 @@
-xfig-qt is xfig 3.2.9a running on Qt.
+xfig-qt is xfig 3.2.9a, the Facility for Interactive Generation of figures,
+running on Qt instead of X11.  xfig is the work of its authors below; its
+home is https://sourceforge.net/projects/mcj/.  xfig-qt adds a layer that
+runs xfig's unchanged C code on Qt.
 
-The xfig sources in core/ and xfig's data in data/ (object libraries,
-documentation, CompKeyDB) are distributed under xfig's license:
+This file says which parts come from where, and under which terms.
+
+
+1. xfig
+=======
+
+From the xfig 3.2.9a distribution (xfig-3.2.9a.tar.xz):
+
+  core/        xfig's src/ directory, unchanged.  core/config.h is not
+               xfig's: it replaces the config.h that xfig's configure
+               script would generate.
+  data/Libraries/          the object libraries (Libraries/)
+  data/doc/                the documentation (doc/)
+  data/CompKeyDB           the compose key database
+  data/app-defaults/Fig    the application defaults (app-defaults/Fig)
+  data/xfig.png, data/org.xfig.xfig.desktop,
+  data/org.xfig.xfig.metainfo.xml
+
+They are distributed under xfig's license:
 
   FIG : Facility for Interactive Generation of figures
   Copyright (c) 1985-1988 by Supoj Sutanthavibul
@@ -18,10 +38,144 @@ documentation, CompKeyDB) are distributed under xfig's license:
   party to do so, with the only requirement being that the above copyright
   and this permission notice remain intact.
 
-Individual files in core/ name further contributors in their headers.
+Further contributors hold parts of xfig under these terms; their notices
+are in the headers of the files concerned and remain intact there, among
+them C. Blanc and C. Schlick (X-splines), Chris Moller, Alexander Durner,
+Stephane Mancini, T. Sato, Henning Spruth, Jim Daley, James Tough, Georg
+Stemmer, Bill Taylor, Brian Boyter, Anthony Dekker (the NeuQuant color
+quantization in core/f_neuclrtab.c) and the Massachusetts Institute of
+Technology (core/f_readxbm.c, from X11R5).
 
-The Qt port (platform/, shim/, ui/, tests/, packaging/ and the build
-files) is distributed under the MIT License:
+Some files in core/ contain code under permission notices of their own,
+which apply to those parts, remain intact in the files, and are
+reproduced here as they ask:
+
+  core/w_dir.c and core/w_dir.h, from xdir by Win Treese:
+
+      COPYRIGHT 1990
+    DIGITAL EQUIPMENT CORPORATION
+     MAYNARD, MASSACHUSETTS
+    ALL RIGHTS RESERVED.
+
+  THE INFORMATION IN THIS SOFTWARE IS SUBJECT TO CHANGE WITHOUT NOTICE AND
+  SHOULD NOT BE CONSTRUED AS A COMMITMENT BY DIGITAL EQUIPMENT CORPORATION.
+  DIGITAL MAKES NO REPRESENTATIONS ABOUT THE SUITABILITY OF THIS SOFTWARE
+  FOR ANY PURPOSE.  IT IS SUPPLIED "AS IS" WITHOUT EXPRESS OR IMPLIED
+  WARRANTY.
+
+  IF THE SOFTWARE IS MODIFIED IN A MANNER CREATING DERIVATIVE COPYRIGHT
+  RIGHTS, APPROPRIATE LEGENDS MAY BE PLACED ON THE DERIVATIVE WORK IN
+  ADDITION TO THAT SET FORTH ABOVE.
+
+  Permission to use, copy, modify, and distribute this software and its
+  documentation for any purpose and without fee is hereby granted, provided
+  that the above copyright notice appear in all copies and that both that
+  copyright notice and this permission notice appear in supporting
+  documentation, and that the name of Digital Equipment Corporation not be
+  used in advertising or publicity pertaining to distribution of the
+  software without specific, written prior permission.
+
+  core/w_color.c and core/w_color.h, from xcoloredit by Richard Hesketh:
+
+  Copyright 1990,1992 Richard Hesketh / rlh2@ukc.ac.uk
+                 Computing Lab. University of Kent at Canterbury, UK
+
+  Permission to use, copy, modify and distribute this software and its
+  documentation for any purpose is hereby granted without fee, provided that
+  the above copyright notice appear in all copies and that both that
+  copyright notice and this permission notice appear in supporting
+  documentation, and that the names of Richard Hesketh and The University of
+  Kent at Canterbury not be used in advertising or publicity pertaining to
+  distribution of the software without specific, written prior permission.
+  Richard Hesketh and The University of Kent at Canterbury make no
+  representations about the suitability of this software for any purpose.
+  It is provided "as is" without express or implied warranty.
+
+  Richard Hesketh AND THE UNIVERSITY OF KENT AT CANTERBURY DISCLAIMS ALL
+  WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES
+  OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL Richard Hesketh OR THE
+  UNIVERSITY OF KENT AT CANTERBURY BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+  CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+  DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  OF THIS SOFTWARE.
+
+  core/w_color.c, the pixel grab color lookup:
+
+  Copyright 1993, David Koblas (koblas@netcom.com)
+  Copyright 1995, 1996 Torsten Martinsen (bullestock@dk-online.dk)
+
+  Permission to use, copy, modify, and to distribute this software
+  and its documentation for any purpose is hereby granted without
+  fee, provided that the above copyright notice appear in all
+  copies and that both that copyright notice and this permission
+  notice appear in supporting documentation.  There is no
+  representations about the suitability of this software for
+  any purpose.  this software is provided "as is" without express
+  or implied warranty.
+
+  core/f_readgif.c:
+
+  Copyright 1990, David Koblas.
+    Permission to use, copy, modify, and distribute this software
+    and its documentation for any purpose and without fee is hereby
+    granted, provided that the above copyright notice appear in all
+    copies and that both that copyright notice and this permission
+    notice appear in supporting documentation.  This software is
+    provided "as is" without express or implied warranty.
+
+  core/f_readjpg.c:
+
+  The authors make NO WARRANTY or representation, either express or implied,
+  with respect to this software, its quality, accuracy, merchantability, or
+  fitness for a particular purpose.  This software is provided "AS IS", and
+  you, its user, assume the entire risk as to its quality and accuracy.
+
+  This software is copyright (C) 1991-1996, Thomas G. Lane.
+  All Rights Reserved except as specified below.
+
+  Permission is hereby granted to use, copy, modify, and distribute this
+  software (or portions thereof) for any purpose, without fee, subject to these
+  conditions:
+  (1) If any part of the source code for this software is distributed, then
+  this README file must be included, with this copyright and no-warranty notice
+  unaltered; and any additions, deletions, or changes to the original files
+  must be clearly indicated in accompanying documentation.
+  (2) If only executable code is distributed, then the accompanying
+  documentation must state that "this software is based in part on the work of
+  the Independent JPEG Group".
+  (3) Permission for use of this software is granted only if the user accepts
+  full responsibility for any undesirable consequences; the authors accept
+  NO LIABILITY for damages of any kind.
+
+  These conditions apply to any software derived from or based on the IJG code,
+  not just to the unmodified library.  If you use our work, you ought to
+  acknowledge us.
+
+  Permission is NOT granted for the use of any IJG author's name or company
+  name in advertising or publicity relating to this software or products
+  derived from it.  This software may be referred to only as "the Independent
+  JPEG Group's software".
+
+As its notice asks: this software is based in part on the work of the
+Independent JPEG Group.
+
+The object libraries in data/Libraries name their artists in
+data/Libraries/README and in the libraries' own README and LICENSE
+files, which also remain intact: the GUI and ERD libraries are Copyright
+2000 Antonio Luis Delgado Gonzalez (data/Libraries/GUI/LICENSE,
+data/Libraries/ERD/LICENSE), the DSP library is Copyright Jakub Stastny
+(data/Libraries/DSP/README).  The metadata in
+data/org.xfig.xfig.metainfo.xml (Copyright 2024 Thomas Loimer) is under
+CC0-1.0.
+
+
+2. The Qt port
+==============
+
+Everything else (platform/, shim/, ui/, tests/, packaging/, the build
+files and the documentation of the port) is distributed under the MIT
+License:
 
   Copyright (c) 2026 Fabian Hassler
 
@@ -43,3 +197,12 @@ files) is distributed under the MIT License:
   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+3. What is not included
+=======================
+
+xfig-qt uses, but does not contain, Qt (LGPL-3.0 or GPL), fig2dev (xfig's
+license), Ghostscript (AGPL-3.0), CUPS, fontconfig, FreeType, libpng,
+libjpeg and libtiff.  They are installed separately, under their own
+licenses.
