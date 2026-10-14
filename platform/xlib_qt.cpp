@@ -582,12 +582,35 @@ px(int x, int y)
 	return QPointF(x + 0.5, y + 0.5);
 }
 
+/* Qt draws nothing for a zero-length line, but in X a wide one shows its
+   caps: a disc for CapRound, a square for CapProjecting.  xfig draws
+   round-capped dots this way. */
+static void
+draw_line(QPainter &p, GC gc, QPointF a, QPointF b)
+{
+	int w = gc->v.line_width;
+	if (a != b || w <= 1) {
+		p.drawLine(a, b);
+		return;
+	}
+	QColor fg = QColor::fromRgb(pix2rgb(gc->v.foreground));
+	if (gc->v.cap_style == CapRound) {
+		p.save();
+		p.setPen(Qt::NoPen);
+		p.setBrush(fg);
+		p.drawEllipse(a, w / 2.0, w / 2.0);
+		p.restore();
+	} else if (gc->v.cap_style == CapProjecting) {
+		p.fillRect(QRectF(a.x() - w / 2.0, a.y() - w / 2.0, w, w), fg);
+	}
+}
+
 extern "C" int
 XDrawLine(Display *, Drawable d, GC gc, int x1, int y1, int x2, int y2)
 {
 	return paint(d, gc, [&](QPainter &p) {
 		p.setPen(line_pen(gc));
-		p.drawLine(px(x1, y1), px(x2, y2));
+		draw_line(p, gc, px(x1, y1), px(x2, y2));
 	});
 }
 
@@ -629,7 +652,7 @@ XDrawSegments(Display *, Drawable d, GC gc, XSegment *s, int n)
 	return paint(d, gc, [&](QPainter &p) {
 		p.setPen(line_pen(gc));
 		for (int i = 0; i < n; ++i)
-			p.drawLine(px(s[i].x1, s[i].y1), px(s[i].x2, s[i].y2));
+			draw_line(p, gc, px(s[i].x1, s[i].y1), px(s[i].x2, s[i].y2));
 	});
 }
 
