@@ -116,38 +116,8 @@ main(int argc, char **argv)
 		run_test_script(qEnvironmentVariable("XFIGQT_SCRIPT"));
 
 	/* defaults that differ from the X11 version (the command line wins) */
-	/* xfig's splash, with xfig-qt's version below xfig's letters in
-	   their faint color */
-	xqb_set_splash_text([](Window win, int x, int y, int w, int h) {
-		QImage *img = xq_image(win);
-		if (!img)
-			return;
-		QColor bg = img->pixelColor(qBound(0, x - 10, img->width() - 1),
-				qBound(0, y + h / 2, img->height() - 1));
-		QColor ink(0xe8, 0xe3, 0xfa);
-		for (int i = 0; i < w && i + x < img->width(); i += 2) {
-			QColor c = img->pixelColor(x + i, qBound(0, y + h / 2,
-					img->height() - 1));
-			if (c != bg) {
-				ink = c;
-				break;
-			}
-		}
-		QPainter p(img);
-		p.setRenderHint(QPainter::Antialiasing);
-		QFont f("Times New Roman");
-		f.setStyleHint(QFont::Serif);
-		f.setBold(true);
-		f.setItalic(true);
-		f.setPixelSize(qMax(14, h * 2 / 5));
-		p.setFont(f);
-		p.setPen(ink);
-		QString text = QString("xfig-qt %1").arg(QApplication::applicationVersion());
-		QRect r(x - w / 2, y + h + 4, 2 * w, h);
-		p.drawText(r, Qt::AlignHCenter | Qt::AlignTop, text);
-		p.end();
-		xq_damaged(win);
-	});
+	/* X input methods do not exist here: xfig need not try (it warns) */
+	xq_set_resource("inputStyle", "None");
 	xq_set_resource("library_dir", xq_data_path("Libraries"));
 	/* the print panel's Print button opens the print dialog */
 	xqb_set_native_print([] { print_figure(MainWindow::instance()); });

@@ -38,6 +38,7 @@
 #include "paintop.h"
 #include "svgout.h"
 #include "w_icons.h"
+#include "u_colors.h"
 #include "e_edit.h"
 #include "f_picobj.h"
 
@@ -809,34 +810,44 @@ xq_popup_browse_panel(Widget w)
 /* --------------------------------------------------------- the splash */
 
 /*
- * xfig's splash, the faint version letters on the empty canvas, and
- * below them the version of xfig-qt.  xfig clears it in its own main loop
- * on the first key or button press; here the Qt peers call
- * xqb_input_seen().
+ * xfig's splash: its version letters on the empty canvas.  xfig draws
+ * them into the canvas once, fading them in to an almost white color;
+ * the canvas is redrawn after that (the window settles, is resized), which
+ * erases them.  Here the canvas paints them on top (MainWindow), with
+ * xfig-qt's version below, until the first key or button press, while the
+ * figure is empty.
  */
-extern void	splash_screen(void);
-static void	(*splash_text)(Window win, int x, int y, int w, int h);
+static Boolean	splash_wanted, splash_done;
 
-void
-xqb_set_splash_text(void (*draw)(Window win, int x, int y, int w, int h))
-{
-	splash_text = draw;
-}
-
+/* xfig's splash_screen(), at startup if the splash is on */
 void
 xq_splash_screen(void)
 {
-	splash_screen();
-	if (splash_text && splash_onscreen)
-		splash_text(canvas_win,
-			(CANVAS_WD - spl_bckgnd_ic.width) / 2 + 325,
-			(CANVAS_HT - spl_bckgnd_ic.height) / 2 + 30,
-			letters_ic.width, letters_ic.height);
+	splash_wanted = True;
 }
 
-void
+int
+xqb_splash_visible(int *x, int *y)
+{
+	if (!splash_wanted || splash_done || !emptyfigure())
+		return 0;
+	*x = (CANVAS_WD - spl_bckgnd_ic.width) / 2 + 325;
+	*y = (CANVAS_HT - spl_bckgnd_ic.height) / 2 + 30;
+	return 1;
+}
+
+const unsigned char *
+xqb_splash_letters(int *w, int *h)
+{
+	*w = letters_ic.width;
+	*h = letters_ic.height;
+	return (const unsigned char *)letters_ic.bits;
+}
+
+int
 xqb_input_seen(void)
 {
-	if (splash_onscreen)
-		clear_splash();
+	int x, y, shown = xqb_splash_visible(&x, &y);
+	splash_done = True;
+	return shown;
 }

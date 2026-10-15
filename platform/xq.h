@@ -31,9 +31,6 @@ QImage	*xq_image(Drawable d);
 /* 1 for bitmaps, 24 for pixmaps and windows, 0 if there is no such drawable */
 int	xq_drawable_depth(Drawable d);
 
-/* a drawable's image was drawn on directly: repaint its window */
-void	xq_damaged(Drawable d);
-
 /* called whenever a window drawable was painted on */
 void	xq_set_damage_callback(std::function<void(Window)> cb);
 

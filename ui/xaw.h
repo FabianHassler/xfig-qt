@@ -60,6 +60,9 @@ public:
 	/* called after a resize by Qt, before the Expose event */
 	std::function<void(int, int)> onResize;
 
+	/* painted over what xfig drew in the window (the splash) */
+	std::function<void(QPainter &, QRect)> overlay;
+
 	/* the window contents were drawn by xfig */
 	void	markDrawn() { m_drawn = true; update(); }
 

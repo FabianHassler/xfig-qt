@@ -90,14 +90,6 @@ damage(Drawable d, DrawableRec *r)
 		damage_cb(d);
 }
 
-/* drawn on from outside Xlib (the splash text): repaint */
-void
-xq_damaged(Drawable d)
-{
-	if (DrawableRec *r = lookup(d))
-		damage(d, r);
-}
-
 static QImage
 new_image(int w, int h, double dpr, int depth)
 {

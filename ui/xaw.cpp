@@ -589,6 +589,8 @@ XawPeer::paintEvent(QPaintEvent *e)
 		qreal dpr = img->devicePixelRatio();
 		p.drawImage(er, *img, QRectF((er.topLeft() - r.topLeft()) * dpr,
 				QSizeF(er.size()) * dpr));
+		if (overlay)
+			overlay(p, r);
 	} else if (m_kind != Form && m_kind != Box && m_kind != Paned &&
 			m_kind != Shell && m_kind != Generic) {
 		paintFace(p, r);
@@ -727,7 +729,10 @@ XawPeer::mousePressEvent(QMouseEvent *e)
 {
 	if (focusPolicy() != Qt::NoFocus)
 		setFocus(Qt::MouseFocusReason);
-	xqb_input_seen();
+	/* the first key or click ends the splash */
+	if (xqb_input_seen())
+		if (XawPeer *c = of(xqb_canvas_widget()))
+			c->update();
 	m_pressed = xButton(e);
 	if (!m_pressed)
 		return;
@@ -968,7 +973,10 @@ XawPeer::makeKey(XEvent &ev, int type, QKeyEvent *e)
 void
 XawPeer::keyPressEvent(QKeyEvent *e)
 {
-	xqb_input_seen();
+	/* the first key or click ends the splash */
+	if (xqb_input_seen())
+		if (XawPeer *c = of(xqb_canvas_widget()))
+			c->update();
 	XEvent ev;
 	if (makeKey(ev, KeyPress, e))
 		sendEvent(ev);

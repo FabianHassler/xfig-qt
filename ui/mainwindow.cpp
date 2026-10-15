@@ -394,6 +394,39 @@ MainWindow::saveAsPath(const QString &path)
 
 /* ----------------------------------------------------------------- panels */
 
+/* xfig's splash on the empty canvas: its version letters in a light
+   color, and xfig-qt's version below */
+static void
+paint_splash(QPainter &p, QRect r)
+{
+	int x, y, w, h;
+	if (!xqb_splash_visible(&x, &y))
+		return;
+	static QImage letters;
+	const QColor ink(0xd4, 0xcc, 0xf0);
+	if (letters.isNull()) {
+		const unsigned char *bits = xqb_splash_letters(&w, &h);
+		QImage mono(bits, w, h, (w + 7) / 8, QImage::Format_MonoLSB);
+		mono.setColorTable({qRgba(0, 0, 0, 0), ink.rgba()});
+		letters = mono.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+	}
+	w = letters.width();
+	h = letters.height();
+	QPoint at = r.topLeft() + QPoint(x, y);
+	p.drawImage(at, letters);
+	QFont f("Times New Roman");
+	f.setStyleHint(QFont::Serif);
+	f.setBold(true);
+	f.setItalic(true);
+	f.setPixelSize(qMax(14, h * 2 / 5));
+	p.setFont(f);
+	p.setPen(ink);
+	p.setRenderHint(QPainter::TextAntialiasing);
+	p.drawText(QRect(at.x() - w / 2, at.y() + h + 4, 2 * w, h),
+			Qt::AlignHCenter | Qt::AlignTop,
+			QString("xfig-qt %1").arg(QApplication::applicationVersion()));
+}
+
 void
 MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 {
@@ -425,6 +458,7 @@ MainWindow::widgetCreated(Widget w, const char *name, const char *wclass)
 		p->setFocusPolicy(Qt::StrongFocus);
 		p->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 		p->onResize = [](int wd, int ht) { xqb_canvas_resized(wd, ht); };
+		p->overlay = paint_splash;
 		m_grid->addWidget(p, 1, m_rulerRight ? 0 : 1);
 		p->show();
 		p->setFocus();
